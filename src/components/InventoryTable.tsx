@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { Search, Edit, Trash2, Package, QrCode, ZoomIn } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Edit, Trash2, Package, QrCode, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,37 +33,6 @@ interface InventoryTableProps {
 }
 
 export function InventoryTable({ data }: InventoryTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredData, setFilteredData] = useState(data);
-
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    if (!term.trim()) {
-      setFilteredData(data);
-      return;
-    }
-    
-    const searchLower = term.toLowerCase();
-    const filtered = data.filter(item => {
-      // Search across all text-based fields
-      return (
-        // Standard fields
-        (item.name && item.name.toLowerCase().includes(searchLower)) ||
-        (item.sku && item.sku.toLowerCase().includes(searchLower)) ||
-        (item.category && item.category.toLowerCase().includes(searchLower)) ||
-        // Optional fields with null check
-        (item.size && item.size.toLowerCase().includes(searchLower)) ||
-        (item.color && item.color.toLowerCase().includes(searchLower)) ||
-        // Convert numbers to string for searching
-        (item.quantity.toString().includes(searchLower)) ||
-        (item.price.toString().includes(searchLower)) ||
-        // Status field
-        (item.status && item.status.toLowerCase().includes(searchLower))
-      );
-    });
-    setFilteredData(filtered);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "low":
@@ -94,17 +61,6 @@ export function InventoryTable({ data }: InventoryTableProps) {
 
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search across all fields (name, SKU, price, quantity, etc.)"
-          value={searchTerm}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
-
       {/* Table */}
       <div className="border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -124,8 +80,8 @@ export function InventoryTable({ data }: InventoryTableProps) {
               </TableRow>
             </TableHeader>
           <TableBody>
-            {filteredData.length > 0 ? (
-              filteredData.map((item) => (
+            {data.length > 0 ? (
+              data.map((item) => (
                 <TableRow key={item.id} className="hover:bg-muted/20">
                   <TableCell>
                     {item.image_url ? (

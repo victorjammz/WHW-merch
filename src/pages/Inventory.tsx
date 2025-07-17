@@ -61,9 +61,28 @@ const Inventory = () => {
     fetchInventory();
   }, [toast]);
 
-  const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
-  const lowStockItems = inventory.filter(item => item.quantity < 20).length;
-  const outOfStockItems = inventory.filter(item => item.quantity === 0).length;
+  // Filter inventory based on search term
+  const filteredInventory = searchTerm.trim() 
+    ? inventory.filter(item => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          (item.name && item.name.toLowerCase().includes(searchLower)) ||
+          (item.sku && item.sku.toLowerCase().includes(searchLower)) ||
+          (item.category && item.category.toLowerCase().includes(searchLower)) ||
+          (item.size && item.size.toLowerCase().includes(searchLower)) ||
+          (item.color && item.color.toLowerCase().includes(searchLower)) ||
+          item.quantity.toString().includes(searchLower) ||
+          item.price.toString().includes(searchLower) ||
+          (item.status && item.status.toLowerCase().includes(searchLower))
+        );
+      })
+    : inventory;
+
+  // Calculate stats based on filtered data
+  const totalItems = filteredInventory.reduce((sum, item) => sum + item.quantity, 0);
+  const totalProducts = filteredInventory.length;
+  const lowStockItems = filteredInventory.filter(item => item.quantity < 20 && item.quantity > 0).length;
+  const outOfStockItems = filteredInventory.filter(item => item.quantity === 0).length;
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -124,7 +143,7 @@ const Inventory = () => {
             <CardTitle className="text-xs md:text-sm font-medium">Products</CardTitle>
           </CardHeader>
           <CardContent className="pb-3">
-            <div className="text-xl md:text-2xl font-bold">{inventory.length}</div>
+            <div className="text-xl md:text-2xl font-bold">{totalProducts}</div>
             <p className="text-xs text-muted-foreground">
               Unique items
             </p>
@@ -185,7 +204,7 @@ const Inventory = () => {
             </div>
           </div>
           
-          <InventoryTable data={inventory} />
+          <InventoryTable data={filteredInventory} />
         </CardContent>
       </Card>
       
