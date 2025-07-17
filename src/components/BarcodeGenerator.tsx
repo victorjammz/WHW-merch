@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 interface BarcodeGeneratorProps {
@@ -141,11 +142,13 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
 
         {barcodeText && (
           <div className="p-4 bg-muted/30 rounded-lg border-2 border-dashed border-border">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-4">
               {/* Barcode visualization placeholder */}
               <div className="h-16 bg-gradient-to-r from-foreground via-foreground to-foreground bg-[length:2px_100%] bg-repeat-x mx-auto max-w-xs opacity-80"></div>
-              <p className="font-mono text-sm text-muted-foreground">{barcodeText}</p>
-              <p className="text-xs text-muted-foreground">{barcodeType}</p>
+              <div className="space-y-2">
+                <p className="font-mono text-sm text-foreground">{barcodeText}</p>
+                <Badge variant="outline" className="bg-background">{barcodeType}</Badge>
+              </div>
             </div>
           </div>
         )}
