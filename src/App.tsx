@@ -6,8 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { CRMSidebar } from "@/components/CRMSidebar";
 import { CRMHeader } from "@/components/CRMHeader";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { Dashboard } from "@/pages/Dashboard";
+import { Barcodes } from "@/pages/Barcodes";
+import { Orders } from "@/pages/Orders";
+import { Analytics } from "@/pages/Analytics";
+import { Reports } from "@/pages/Reports";
+import { Settings } from "@/pages/Settings";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -24,8 +29,12 @@ const App = () => (
               <CRMHeader />
               <main className="flex-1 overflow-auto">
                 <Routes>
-                  <Route path="/" element={<Index />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/barcodes" element={<Barcodes />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
