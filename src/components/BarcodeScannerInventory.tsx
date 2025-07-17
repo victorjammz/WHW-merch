@@ -44,13 +44,13 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
 
   const searchInventoryBySKU = async (scannedCode: string) => {
     try {
-      console.log('Searching for SKU:', scannedCode);
+      console.log('Searching for barcode/SKU:', scannedCode);
       
-      // Search using maybeSingle to avoid errors when no item is found
+      // Search using both barcode_text and SKU fields for maximum compatibility
       const { data, error } = await supabase
         .from('inventory')
         .select('*')
-        .eq('sku', scannedCode)
+        .or(`sku.eq.${scannedCode},barcode_text.eq.${scannedCode}`)
         .maybeSingle();
 
       if (error) {
@@ -62,7 +62,7 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
         // No item found - show a helpful message
         toast({
           title: "Item not found",
-          description: `No inventory item found with SKU: ${scannedCode}. Make sure the SKU exists in your inventory.`,
+          description: `No inventory item found with barcode/SKU: ${scannedCode}. Make sure the item exists in your inventory and the barcode matches the SKU or barcode_text field.`,
           variant: "destructive"
         });
         setIsDialogOpen(false);

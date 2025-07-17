@@ -53,7 +53,7 @@ export const useBarcodeScanner = () => {
       });
       
       // For demo purposes, return a test result
-      const testSku = prompt("Enter SKU to simulate barcode scan (or cancel):");
+      const testSku = prompt("Enter SKU/Barcode to simulate scanning (or cancel):");
       if (testSku) {
         return {
           hasContent: true,
@@ -63,6 +63,7 @@ export const useBarcodeScanner = () => {
       return null;
     }
 
+    // Mobile/Native platform - use actual camera
     const hasPermissions = await checkPermission();
     if (!hasPermissions) {
       return null;
@@ -71,32 +72,46 @@ export const useBarcodeScanner = () => {
     try {
       setIsScanning(true);
       
-      // Hide background content
+      // Hide background content for full camera view
       document.body.classList.add('scanner-active');
-      BarcodeScanner.hideBackground();
+      await BarcodeScanner.hideBackground();
+      
+      console.log('Starting camera scan...');
       
       const result = await BarcodeScanner.startScan();
       
+      console.log('Scan result:', result);
+      
       // Show background content again
       document.body.classList.remove('scanner-active');
-      BarcodeScanner.showBackground();
+      await BarcodeScanner.showBackground();
       
       setIsScanning(false);
       
       if (result.hasContent) {
+        toast({
+          title: "Barcode scanned!",
+          description: `Found: ${result.content}`,
+        });
         return result;
+      } else {
+        toast({
+          title: "No barcode detected",
+          description: "Please try scanning again with better lighting and focus.",
+          variant: "destructive"
+        });
+        return null;
       }
       
-      return null;
     } catch (error) {
       console.error('Scanning failed:', error);
       document.body.classList.remove('scanner-active');
-      BarcodeScanner.showBackground();
+      await BarcodeScanner.showBackground();
       setIsScanning(false);
       
       toast({
         title: "Scanning failed",
-        description: "Failed to scan barcode. Please try again.",
+        description: `Camera error: ${error.message || 'Unknown error'}. Please try again.`,
         variant: "destructive"
       });
       
@@ -108,10 +123,17 @@ export const useBarcodeScanner = () => {
     try {
       await BarcodeScanner.stopScan();
       document.body.classList.remove('scanner-active');
-      BarcodeScanner.showBackground();
+      await BarcodeScanner.showBackground();
       setIsScanning(false);
+      
+      toast({
+        title: "Scan cancelled",
+        description: "Barcode scanning was stopped.",
+      });
     } catch (error) {
       console.error('Failed to stop scan:', error);
+      document.body.classList.remove('scanner-active');
+      setIsScanning(false);
     }
   };
 

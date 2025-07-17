@@ -14,7 +14,9 @@ const sampleItems = [
     color: 'Blue',
     quantity: 50,
     price: 19.99,
-    status: 'in_stock'
+    status: 'in_stock',
+    barcode_text: 'TEST001',
+    barcode_type: 'CODE128'
   },
   {
     sku: 'TEST002', 
@@ -24,7 +26,9 @@ const sampleItems = [
     color: 'Black',
     quantity: 25,
     price: 39.99,
-    status: 'in_stock'
+    status: 'in_stock',
+    barcode_text: 'TEST002',
+    barcode_type: 'CODE128'
   },
   {
     sku: 'SCAN123',
@@ -34,7 +38,9 @@ const sampleItems = [
     color: 'Red',
     quantity: 10,
     price: 9.99,
-    status: 'in_stock'
+    status: 'in_stock',
+    barcode_text: 'SCAN123',
+    barcode_type: 'CODE128'
   }
 ];
 
@@ -84,16 +90,21 @@ export function TestDataHelper() {
       <CardContent>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Click the button below to add test items with these SKUs:
+            Click the button below to add test items with these SKUs and barcodes:
           </p>
           <ul className="text-sm space-y-1">
-            <li><code className="bg-muted px-1 rounded">TEST001</code> - Sample T-Shirt</li>
-            <li><code className="bg-muted px-1 rounded">TEST002</code> - Sample Hoodie</li>
-            <li><code className="bg-muted px-1 rounded">SCAN123</code> - Test Merchandise</li>
+            <li><code className="bg-muted px-1 rounded">TEST001</code> - Sample T-Shirt (Barcode: TEST001)</li>
+            <li><code className="bg-muted px-1 rounded">TEST002</code> - Sample Hoodie (Barcode: TEST002)</li>
+            <li><code className="bg-muted px-1 rounded">SCAN123</code> - Test Merchandise (Barcode: SCAN123)</li>
           </ul>
           <p className="text-sm text-muted-foreground">
-            After adding these items, you can test the barcode scanner by entering any of these SKUs when prompted.
+            After adding these items, you can test the barcode scanner by:
           </p>
+          <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+            <li><strong>On mobile:</strong> Use your camera to scan actual barcodes with these codes</li>
+            <li><strong>On web:</strong> Enter any of these codes when prompted</li>
+            <li>The scanner will find items by both SKU and barcode_text fields</li>
+          </ul>
           <Button 
             onClick={addSampleData} 
             disabled={isLoading}

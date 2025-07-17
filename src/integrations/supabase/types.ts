@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       inventory: {
         Row: {
+          barcode_text: string | null
+          barcode_type: string | null
           category: string
           color: string | null
           created_at: string
@@ -30,6 +32,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          barcode_text?: string | null
+          barcode_type?: string | null
           category: string
           color?: string | null
           created_at?: string
@@ -44,6 +48,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          barcode_text?: string | null
+          barcode_type?: string | null
           category?: string
           color?: string | null
           created_at?: string
