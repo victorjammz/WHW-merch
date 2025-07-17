@@ -44,34 +44,38 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
 
   const searchInventoryBySKU = async (scannedCode: string) => {
     try {
-      // First try to find by exact SKU match
+      console.log('Searching for SKU:', scannedCode);
+      
+      // Search using maybeSingle to avoid errors when no item is found
       const { data, error } = await supabase
         .from('inventory')
         .select('*')
         .eq('sku', scannedCode)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code === 'PGRST116') {
-        // No item found
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        // No item found - show a helpful message
         toast({
           title: "Item not found",
-          description: `No inventory item found with SKU: ${scannedCode}`,
+          description: `No inventory item found with SKU: ${scannedCode}. Make sure the SKU exists in your inventory.`,
           variant: "destructive"
         });
         setIsDialogOpen(false);
         return;
       }
 
-      if (error) {
-        throw error;
-      }
-
+      console.log('Found item:', data);
       setScannedItem(data as InventoryItem);
     } catch (error) {
       console.error('Error searching inventory:', error);
       toast({
         title: "Search failed",
-        description: "Failed to search for inventory item",
+        description: "Failed to search for inventory item. Please try again.",
         variant: "destructive"
       });
       setIsDialogOpen(false);
@@ -85,6 +89,8 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
     try {
       const newQuantity = scannedItem.quantity + quantityToAdd;
       
+      console.log('Updating inventory:', { id: scannedItem.id, newQuantity });
+      
       const { error } = await supabase
         .from('inventory')
         .update({ 
@@ -93,7 +99,10 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
         })
         .eq('id', scannedItem.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update error:', error);
+        throw error;
+      }
 
       toast({
         title: "Inventory updated",
@@ -110,7 +119,7 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
       console.error('Error updating inventory:', error);
       toast({
         title: "Update failed",
-        description: "Failed to update inventory quantity",
+        description: `Failed to update inventory quantity: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {

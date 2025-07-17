@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { InventoryTable } from "@/components/InventoryTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
 import { BarcodeScannerInventory } from "@/components/BarcodeScannerInventory";
+import { TestDataHelper } from "@/components/TestDataHelper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -187,6 +188,9 @@ const Inventory = () => {
           <InventoryTable data={inventory} />
         </CardContent>
       </Card>
+      
+      {/* Test Data Helper - Only show in development */}
+      <TestDataHelper />
     </div>
   );
 };

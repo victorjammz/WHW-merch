@@ -44,12 +44,22 @@ export const useBarcodeScanner = () => {
   };
 
   const startScan = async (): Promise<BarcodeScanResult | null> => {
+    // For web environment, show a mock scanner for testing
     if (!Capacitor.isNativePlatform()) {
       toast({
-        title: "Barcode scanning unavailable",
-        description: "Barcode scanning is only available on mobile devices",
-        variant: "destructive"
+        title: "Web Demo Mode",
+        description: "Enter a test SKU to simulate scanning. Try 'TEST001' or any existing SKU.",
+        variant: "default"
       });
+      
+      // For demo purposes, return a test result
+      const testSku = prompt("Enter SKU to simulate barcode scan (or cancel):");
+      if (testSku) {
+        return {
+          hasContent: true,
+          content: testSku.trim()
+        };
+      }
       return null;
     }
 
