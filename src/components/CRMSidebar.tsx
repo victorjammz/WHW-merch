@@ -38,13 +38,14 @@ export function CRMSidebar() {
       <SidebarContent className="bg-card border-r">
         <div className="p-6 border-b">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <Package className="h-5 w-5 text-white" />
-            </div>
+            <img 
+              src="/lovable-uploads/44068426-b2cb-498d-b6d1-64702f3a3f2f.png" 
+              alt="Warehouse Worship Logo" 
+              className="h-8 w-auto object-contain"
+            />
             {!collapsed && (
-              <div>
-                <h2 className="text-lg font-bold text-foreground">Warehouse</h2>
-                <p className="text-sm text-muted-foreground">Worship</p>
+              <div className="hidden">
+                {/* Logo already contains the text, so we hide the duplicate text */}
               </div>
             )}
           </div>

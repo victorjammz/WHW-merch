@@ -17,6 +17,13 @@ export function CRMHeader() {
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="lg:hidden" />
+          <div className="flex items-center gap-3 lg:hidden">
+            <img 
+              src="/lovable-uploads/44068426-b2cb-498d-b6d1-64702f3a3f2f.png" 
+              alt="Warehouse Worship" 
+              className="h-6 w-auto object-contain"
+            />
+          </div>
           <div className="hidden md:flex items-center gap-2 max-w-sm">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
