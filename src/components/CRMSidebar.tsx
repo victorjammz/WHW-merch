@@ -39,8 +39,7 @@ const navigationItems: NavigationItem[] = [
   { 
     title: "Inventory", 
     url: "/inventory", 
-    icon: Package,
-    allowedRoles: ['admin'] // Only admins can access inventory management
+    icon: Package
   },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Orders", url: "/orders", icon: ShoppingCart },

@@ -46,15 +46,10 @@ const AppRoutes = () => {
                     <Routes>
                       <Route path="/" element={<Index />} />
                       
+                      {/* Routes accessible by both roles */}
+                      <Route path="/inventory" element={<Inventory />} />
+                      
                       {/* Admin-only routes */}
-                      <Route 
-                        path="/inventory" 
-                        element={
-                          <RoleProtectedRoute allowedRoles={['admin']}>
-                            <Inventory />
-                          </RoleProtectedRoute>
-                        } 
-                      />
                       <Route 
                         path="/user-management" 
                         element={
