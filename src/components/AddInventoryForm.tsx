@@ -12,9 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddInventoryFormProps {
-  onAdd: (item: any) => void;
+  onAdd: () => void;
   onCancel: () => void;
 }
 
@@ -30,6 +32,8 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
     description: ""
   });
 
+  const { toast } = useToast();
+
   const categories = [
     "Shirts",
     "Pants", 
@@ -44,17 +48,39 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const colors = ["Black", "White", "Grey", "Navy", "Brown", "Beige", "Red", "Blue", "Green"];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.sku || !formData.name || !formData.quantity || !formData.price) {
       return;
     }
 
-    onAdd({
-      ...formData,
-      quantity: parseInt(formData.quantity),
-      price: parseFloat(formData.price)
+    const { error } = await supabase
+      .from('inventory')
+      .insert([{
+        sku: formData.sku,
+        name: formData.name,
+        category: formData.category,
+        size: formData.size || null,
+        color: formData.color || null,
+        quantity: parseInt(formData.quantity),
+        price: parseFloat(formData.price)
+      }]);
+
+    if (error) {
+      toast({
+        title: "Error adding item",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Item added to inventory"
     });
+    
+    onAdd();
   };
 
   const handleChange = (field: string, value: string) => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,51 +7,60 @@ import { Badge } from "@/components/ui/badge";
 import { InventoryTable } from "@/components/InventoryTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data for demonstration
-const mockInventory = [
-  {
-    id: "1",
-    sku: "WW-TSH-001",
-    name: "Worship T-Shirt",
-    category: "Apparel",
-    size: "M",
-    color: "Blue",
-    quantity: 45,
-    price: 25.00,
-    status: "high" as const
-  },
-  {
-    id: "2",
-    sku: "WW-MUG-002", 
-    name: "Coffee Mug",
-    category: "Accessories",
-    size: "One Size",
-    color: "White",
-    quantity: 12,
-    price: 15.00,
-    status: "low" as const
-  },
-  {
-    id: "3",
-    sku: "WW-BK-003",
-    name: "Study Bible",
-    category: "Books",
-    size: "Standard",
-    color: "Brown",
-    quantity: 0,
-    price: 35.00,
-    status: "low" as const
-  }
-];
+interface InventoryItem {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  size: string | null;
+  color: string | null;
+  quantity: number;
+  price: number;
+  status: "low" | "medium" | "high";
+}
+
+  const getStockStatus = (quantity: number): "low" | "medium" | "high" => {
+    if (quantity <= 0) return 'low';
+    if (quantity < 20) return 'medium';
+    return 'high';
+  };
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const { toast } = useToast();
 
-  const totalItems = mockInventory.reduce((sum, item) => sum + item.quantity, 0);
-  const lowStockItems = mockInventory.filter(item => item.quantity < 20).length;
-  const outOfStockItems = mockInventory.filter(item => item.quantity === 0).length;
+  useEffect(() => {
+    const fetchInventory = async () => {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*');
+      
+      if (error) {
+        toast({
+          title: "Error fetching inventory",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setInventory(data.map(item => ({
+        ...item,
+        status: getStockStatus(item.quantity)
+      })));
+    };
+
+    fetchInventory();
+  }, [toast]);
+
+  const totalItems = inventory.reduce((sum, item) => sum + item.quantity, 0);
+  const lowStockItems = inventory.filter(item => item.quantity < 20).length;
+  const outOfStockItems = inventory.filter(item => item.quantity === 0).length;
 
   return (
     <div className="space-y-6 p-6">
@@ -74,7 +83,11 @@ const Inventory = () => {
               <DialogTitle>Add New Product</DialogTitle>
             </DialogHeader>
             <AddInventoryForm 
-              onAdd={() => setIsAddDialogOpen(false)} 
+              onAdd={() => {
+                setIsAddDialogOpen(false);
+                // Refresh inventory data
+                window.location.reload();
+              }} 
               onCancel={() => setIsAddDialogOpen(false)} 
             />
           </DialogContent>
@@ -99,7 +112,7 @@ const Inventory = () => {
             <CardTitle className="text-sm font-medium">Products</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockInventory.length}</div>
+            <div className="text-2xl font-bold">{inventory.length}</div>
             <p className="text-xs text-muted-foreground">
               Different products
             </p>
@@ -158,7 +171,7 @@ const Inventory = () => {
             </Button>
           </div>
           
-          <InventoryTable data={mockInventory} />
+          <InventoryTable data={inventory} />
         </CardContent>
       </Card>
     </div>

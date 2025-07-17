@@ -17,8 +17,8 @@ interface InventoryItem {
   sku: string;
   name: string;
   category: string;
-  size: string;
-  color: string;
+  size: string | null;
+  color: string | null;
   quantity: number;  
   price: number;
   status: "low" | "medium" | "high";

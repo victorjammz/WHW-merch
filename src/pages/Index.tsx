@@ -56,13 +56,7 @@ const Index = () => {
     totalProducts: inventoryData.length
   };
 
-  const handleAddInventory = (newItem: any) => {
-    const item = {
-      id: Date.now().toString(),
-      ...newItem,
-      status: newItem.quantity > 20 ? "high" : newItem.quantity > 10 ? "medium" : "low"
-    };
-    setInventoryData([...inventoryData, item]);
+  const handleAddInventory = () => {
     setShowAddForm(false);
   };
 
