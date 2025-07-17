@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 // Pages
 import Index from "./pages/Index";
@@ -37,50 +38,52 @@ const AppRoutes = () => {
         path="/*"
         element={
           <ProtectedRoute>
-            <SidebarProvider>
-              <div className="flex min-h-screen w-full bg-gradient-subtle">
-                <CRMSidebar />
-                <div className="flex-1 flex flex-col min-w-0">
-                  <Header />
-                  <main className="flex-1 overflow-auto p-4 md:p-6">
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      
-                      {/* Routes accessible by both roles */}
-                      <Route path="/inventory" element={<Inventory />} />
-                      
-                      {/* Admin-only routes */}
-                      <Route 
-                        path="/user-management" 
-                        element={
-                          <RoleProtectedRoute allowedRoles={['admin']}>
-                            <UserManagement />
-                          </RoleProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/role-management" 
-                        element={
-                          <RoleProtectedRoute allowedRoles={['admin']}>
-                            <RoleManagement />
-                          </RoleProtectedRoute>
-                        } 
-                      />
-                      
-                      {/* Routes accessible by both roles */}
-                      <Route path="/customers" element={<Customers />} />
-                      <Route path="/orders" element={<Orders />} />
-                      <Route path="/analytics" element={<Analytics />} />
-                      <Route path="/barcodes" element={<Barcodes />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/settings" element={<Settings />} />
-                      
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </main>
+            <CurrencyProvider>
+              <SidebarProvider>
+                <div className="flex min-h-screen w-full bg-gradient-subtle">
+                  <CRMSidebar />
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <Header />
+                    <main className="flex-1 overflow-auto p-4 md:p-6">
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        
+                        {/* Routes accessible by both roles */}
+                        <Route path="/inventory" element={<Inventory />} />
+                        
+                        {/* Admin-only routes */}
+                        <Route 
+                          path="/user-management" 
+                          element={
+                            <RoleProtectedRoute allowedRoles={['admin']}>
+                              <UserManagement />
+                            </RoleProtectedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/role-management" 
+                          element={
+                            <RoleProtectedRoute allowedRoles={['admin']}>
+                              <RoleManagement />
+                            </RoleProtectedRoute>
+                          } 
+                        />
+                        
+                        {/* Routes accessible by both roles */}
+                        <Route path="/customers" element={<Customers />} />
+                        <Route path="/orders" element={<Orders />} />
+                        <Route path="/analytics" element={<Analytics />} />
+                        <Route path="/barcodes" element={<Barcodes />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/settings" element={<Settings />} />
+                        
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </main>
+                  </div>
                 </div>
-              </div>
-            </SidebarProvider>
+              </SidebarProvider>
+            </CurrencyProvider>
           </ProtectedRoute>
         }
       />
