@@ -20,6 +20,7 @@ export type Database = {
           color: string | null
           created_at: string
           id: string
+          image_url: string | null
           name: string
           price: number
           quantity: number
@@ -33,6 +34,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           name: string
           price: number
           quantity?: number
@@ -46,6 +48,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           name?: string
           price?: number
           quantity?: number

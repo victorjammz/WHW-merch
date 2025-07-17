@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Upload, Image, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,10 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
     price: "",
     description: ""
   });
+  
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { toast } = useToast();
 
@@ -48,10 +52,75 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const colors = ["Black", "White", "Grey", "Navy", "Brown", "Beige", "Red", "Blue", "Green"];
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+  
+  const uploadImage = async (file: File): Promise<string | null> => {
+    setIsUploading(true);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('inventory-images')
+        .upload(filePath, file);
+        
+      if (uploadError) {
+        toast({
+          title: "Error uploading image",
+          description: uploadError.message,
+          variant: "destructive"
+        });
+        return null;
+      }
+      
+      const { data } = supabase.storage
+        .from('inventory-images')
+        .getPublicUrl(filePath);
+        
+      return data.publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error uploading image",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.sku || !formData.name || !formData.quantity || !formData.price) {
       return;
+    }
+
+    // Upload image if present
+    let imageUrl = null;
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+      if (!imageUrl && imageFile) {
+        // If image upload failed but image was provided, alert user
+        toast({
+          title: "Warning",
+          description: "Failed to upload image, but continuing with item creation"
+        });
+      }
     }
 
     const { error } = await supabase
@@ -63,7 +132,8 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
         size: formData.size || null,
         color: formData.color || null,
         quantity: parseInt(formData.quantity),
-        price: parseFloat(formData.price)
+        price: parseFloat(formData.price),
+        image_url: imageUrl
       }]);
 
     if (error) {
@@ -205,6 +275,51 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image">Product Image</Label>
+              {imagePreview ? (
+                <div className="relative w-full h-48 border border-border rounded-md overflow-hidden group">
+                  <img 
+                    src={imagePreview} 
+                    alt="Product preview" 
+                    className="w-full h-full object-contain"
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button 
+                      type="button" 
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemoveImage}
+                      className="flex items-center gap-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border border-dashed border-border rounded-md p-6 flex flex-col items-center justify-center h-48 bg-muted/30">
+                  <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">Drag and drop or click to upload</p>
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <Button type="button" variant="outline" size="sm" className="flex items-center gap-1" disabled={isUploading}>
+                      <Upload className="h-3 w-3" />
+                      {isUploading ? "Uploading..." : "Select Image"}
+                    </Button>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Supported formats: JPEG, PNG, WebP. Max size: 5MB</p>
             </div>
 
             <div className="space-y-2">

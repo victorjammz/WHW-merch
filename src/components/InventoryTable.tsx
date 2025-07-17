@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Edit, Trash2, Package, QrCode } from "lucide-react";
+import { Search, Edit, Trash2, Package, QrCode, ZoomIn } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface InventoryItem {
   id: string;
@@ -22,6 +27,7 @@ interface InventoryItem {
   quantity: number;  
   price: number;
   status: "low" | "medium" | "high";
+  image_url?: string | null;
 }
 
 interface InventoryTableProps {
@@ -86,6 +92,7 @@ export function InventoryTable({ data }: InventoryTableProps) {
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>SKU</TableHead>
               <TableHead>Product Name</TableHead>
               <TableHead>Category</TableHead>
@@ -101,6 +108,41 @@ export function InventoryTable({ data }: InventoryTableProps) {
             {filteredData.length > 0 ? (
               filteredData.map((item) => (
                 <TableRow key={item.id} className="hover:bg-muted/20">
+                  <TableCell>
+                    {item.image_url ? (
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <div className="h-12 w-12 rounded-md overflow-hidden border border-border relative group cursor-pointer">
+                            <img 
+                              src={item.image_url} 
+                              alt={item.name} 
+                              className="h-full w-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ZoomIn className="h-5 w-5 text-white" />
+                            </div>
+                          </div>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-72 p-0">
+                          <div className="relative aspect-square overflow-hidden rounded-md">
+                            <img 
+                              src={item.image_url} 
+                              alt={item.name} 
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                          <div className="p-3">
+                            <h4 className="font-medium text-sm">{item.name}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">SKU: {item.sku}</p>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    ) : (
+                      <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-sm">{item.sku}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{item.category}</TableCell>
@@ -130,7 +172,7 @@ export function InventoryTable({ data }: InventoryTableProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex flex-col items-center space-y-2">
                     <Package className="h-8 w-8 text-muted-foreground" />
                     <p className="text-muted-foreground">No inventory items found</p>

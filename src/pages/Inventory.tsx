@@ -20,6 +20,7 @@ interface InventoryItem {
   quantity: number;
   price: number;
   status: "low" | "medium" | "high";
+  image_url?: string | null;
 }
 
   const getStockStatus = (quantity: number): "low" | "medium" | "high" => {
