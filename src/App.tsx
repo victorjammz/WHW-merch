@@ -20,6 +20,7 @@ import Barcodes from "./pages/Barcodes";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import UserManagement from "./pages/UserManagement";
+import RoleManagement from "./pages/RoleManagement";
 import Auth from "./pages/Auth";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -59,6 +60,14 @@ const AppRoutes = () => {
                         element={
                           <RoleProtectedRoute allowedRoles={['admin']}>
                             <UserManagement />
+                          </RoleProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/role-management" 
+                        element={
+                          <RoleProtectedRoute allowedRoles={['admin']}>
+                            <RoleManagement />
                           </RoleProtectedRoute>
                         } 
                       />

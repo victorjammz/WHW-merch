@@ -8,7 +8,8 @@ import {
   ShoppingCart, 
   TrendingUp, 
   FileText,
-  CircleUserRound
+  CircleUserRound,
+  Shield
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -141,6 +142,23 @@ export function CRMSidebar() {
                     {collapsed && (
                       <TooltipContent side="right">
                         User Management
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton asChild className="mx-3 rounded-lg">
+                        <NavLink to="/role-management" className={getNavCls}>
+                          <Shield className="h-5 w-5" />
+                          {!collapsed && <span className="ml-3">Role Management</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">
+                        Role Management
                       </TooltipContent>
                     )}
                   </Tooltip>
