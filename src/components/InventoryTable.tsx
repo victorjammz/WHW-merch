@@ -107,21 +107,22 @@ export function InventoryTable({ data }: InventoryTableProps) {
 
       {/* Table */}
       <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              <TableHead>Image</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Product Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="w-16">Image</TableHead>
+                <TableHead className="min-w-[100px]">SKU</TableHead>
+                <TableHead className="min-w-[150px]">Product Name</TableHead>
+                <TableHead className="min-w-[100px] hidden sm:table-cell">Category</TableHead>
+                <TableHead className="min-w-[80px] hidden md:table-cell">Size</TableHead>
+                <TableHead className="min-w-[80px] hidden md:table-cell">Color</TableHead>
+                <TableHead className="min-w-[80px]">Qty</TableHead>
+                <TableHead className="min-w-[80px]">Price</TableHead>
+                <TableHead className="min-w-[100px]">Status</TableHead>
+                <TableHead className="min-w-[120px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {filteredData.length > 0 ? (
               filteredData.map((item) => (
@@ -161,28 +162,28 @@ export function InventoryTable({ data }: InventoryTableProps) {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{item.sku}</TableCell>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>{item.size}</TableCell>
-                  <TableCell>{item.color}</TableCell>
-                  <TableCell className="font-semibold">{item.quantity}</TableCell>
-                  <TableCell>${item.price.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-xs md:text-sm">{item.sku}</TableCell>
+                  <TableCell className="font-medium text-sm">{item.name}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-sm">{item.category}</TableCell>
+                  <TableCell className="hidden md:table-cell text-sm">{item.size}</TableCell>
+                  <TableCell className="hidden md:table-cell text-sm">{item.color}</TableCell>
+                  <TableCell className="font-semibold text-sm">{item.quantity}</TableCell>
+                  <TableCell className="text-sm">${item.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(item.status)}>
                       {getStatusText(item.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-1">
-                      <Button variant="outline" size="sm" title="Generate Barcode">
-                        <QrCode className="h-4 w-4" />
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" title="Generate Barcode" className="h-8 w-8 p-0">
+                        <QrCode className="h-3 w-3" />
                       </Button>
-                      <Button variant="outline" size="sm" title="Edit Item">
-                        <Edit className="h-4 w-4" />
+                      <Button variant="outline" size="sm" title="Edit Item" className="h-8 w-8 p-0">
+                        <Edit className="h-3 w-3" />
                       </Button>
-                      <Button variant="outline" size="sm" title="Delete Item">
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="outline" size="sm" title="Delete Item" className="h-8 w-8 p-0">
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </TableCell>
@@ -193,13 +194,14 @@ export function InventoryTable({ data }: InventoryTableProps) {
                 <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex flex-col items-center space-y-2">
                     <Package className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">No inventory items found</p>
+                    <p className="text-sm text-muted-foreground">No inventory items found</p>
                   </div>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
     </div>
   );

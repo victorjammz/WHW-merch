@@ -71,27 +71,28 @@ const Index = () => {
   };
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome to Warehouse Worship CRM - Manage your inventory and customers</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Dashboard</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Welcome to Warehouse Worship CRM - Manage your inventory and customers</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
           <Button 
             onClick={() => setShowAddForm(true)} 
-            size="lg"
-            className="bg-gradient-primary hover:opacity-90 shadow-elegant"
+            size="default"
+            className="flex-1 sm:flex-none bg-gradient-primary hover:opacity-90 shadow-elegant"
           >
-            <Plus className="mr-2 h-5 w-5" />
-            Add Item
+            <Plus className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Add Item</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <Card className="shadow-card border-l-4 border-l-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Inventory</CardTitle>
@@ -138,25 +139,25 @@ const Index = () => {
         </div>
 
         {/* CRM Features Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
+          <div className="xl:col-span-2 order-2 xl:order-1">
             <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Package className="h-5 w-5" />
                   Inventory Management
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Manage your clothing inventory, track stock levels, and monitor product performance
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 md:p-6">
                 <InventoryTable data={inventoryData} />
               </CardContent>
             </Card>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6 order-1 xl:order-2">
             <BarcodeGenerator 
               onGenerate={(code, type) => {
                 console.log('Generated barcode:', code, type);

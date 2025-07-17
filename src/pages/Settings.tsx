@@ -60,21 +60,21 @@ const Settings = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Manage your application settings and preferences
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="regional">Regional</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+      <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+          <TabsTrigger value="profile" className="text-xs md:text-sm p-2">Profile</TabsTrigger>
+          <TabsTrigger value="notifications" className="text-xs md:text-sm p-2">Notifications</TabsTrigger>
+          <TabsTrigger value="security" className="text-xs md:text-sm p-2">Security</TabsTrigger>
+          <TabsTrigger value="regional" className="text-xs md:text-sm p-2">Regional</TabsTrigger>
+          <TabsTrigger value="appearance" className="text-xs md:text-sm p-2">Appearance</TabsTrigger>
         </TabsList>
 
         {/* Profile Settings */}
@@ -90,21 +90,21 @@ const Settings = () => {
                   Update your personal and company information
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6">
                 {/* Avatar Section */}
-                <div className="flex items-center gap-6">
-                  <Avatar className="h-24 w-24">
+                <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+                  <Avatar className="h-20 w-20 md:h-24 md:w-24">
                     <AvatarImage src={avatarPreview || settings?.avatar_url || ""} />
-                    <AvatarFallback className="text-xl bg-primary/10 text-primary">
+                    <AvatarFallback className="text-lg md:text-xl bg-primary/10 text-primary">
                       {getInitials()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
+                  <div className="space-y-2 text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <label htmlFor="avatar-upload" className="cursor-pointer">
-                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" className="flex items-center gap-2 w-full sm:w-auto">
                           <Camera className="h-4 w-4" />
-                          Change Avatar
+                          <span className="text-xs md:text-sm">Change Avatar</span>
                         </Button>
                         <input
                           id="avatar-upload"
@@ -115,13 +115,13 @@ const Settings = () => {
                         />
                       </label>
                       {(settings?.avatar_url || avatarPreview) && (
-                        <Button variant="outline" size="sm" onClick={handleDeleteAvatar}>
+                        <Button variant="outline" size="sm" onClick={handleDeleteAvatar} className="w-full sm:w-auto">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
                     {avatarFile && (
-                      <Button size="sm" onClick={handleAvatarUpload} disabled={isSaving}>
+                      <Button size="sm" onClick={handleAvatarUpload} disabled={isSaving} className="w-full sm:w-auto">
                         <Upload className="mr-2 h-4 w-4" />
                         Upload
                       </Button>
@@ -134,27 +134,28 @@ const Settings = () => {
 
                 <Separator />
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className="text-sm">Email Address</Label>
                     <Input
                       id="email"
                       type="email"
                       value={user?.email || ""}
                       disabled
-                      className="bg-muted"
+                      className="bg-muted text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
                       Email cannot be changed here
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="companyName">Company Name</Label>
+                    <Label htmlFor="companyName" className="text-sm">Company Name</Label>
                     <Input
                       id="companyName"
                       value={settings?.company_name || ""}
                       onChange={(e) => updateSettings({ company_name: e.target.value })}
                       placeholder="Enter company name"
+                      className="text-sm"
                     />
                   </div>
                 </div>

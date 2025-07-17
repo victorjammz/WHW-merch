@@ -51,9 +51,9 @@ export function Header() {
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center justify-between px-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold">Warehouse Worship CRM</h1>
+      <div className="flex h-14 items-center justify-between px-4 md:px-6">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <h1 className="text-base md:text-lg font-semibold truncate">Warehouse Worship CRM</h1>
         </div>
         
         <DropdownMenu>

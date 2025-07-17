@@ -65,15 +65,15 @@ const Inventory = () => {
   const outOfStockItems = inventory.filter(item => item.quantity === 0).length;
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
-          <p className="text-muted-foreground">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Inventory Management</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Manage your warehouse inventory and stock levels
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <BarcodeScannerInventory 
             onInventoryUpdate={() => {
               // Refresh inventory data
@@ -82,12 +82,13 @@ const Inventory = () => {
           />
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="flex-1 sm:flex-none">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Product
+                <span className="hidden sm:inline">Add Product</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
@@ -105,48 +106,48 @@ const Inventory = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Total Items</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalItems}</div>
+          <CardContent className="pb-3">
+            <div className="text-xl md:text-2xl font-bold">{totalItems}</div>
             <p className="text-xs text-muted-foreground">
-              Across all categories
+              All categories
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Products</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inventory.length}</div>
+          <CardContent className="pb-3">
+            <div className="text-xl md:text-2xl font-bold">{inventory.length}</div>
             <p className="text-xs text-muted-foreground">
-              Different products
+              Unique items
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Low Stock</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{lowStockItems}</div>
+          <CardContent className="pb-3">
+            <div className="text-xl md:text-2xl font-bold text-warning">{lowStockItems}</div>
             <p className="text-xs text-muted-foreground">
-              Need reordering
+              Need reorder
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Out of Stock</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{outOfStockItems}</div>
+          <CardContent className="pb-3">
+            <div className="text-xl md:text-2xl font-bold text-destructive">{outOfStockItems}</div>
             <p className="text-xs text-muted-foreground">
-              Urgent restock needed
+              Urgent restock
             </p>
           </CardContent>
         </Card>
@@ -160,25 +161,27 @@ const Inventory = () => {
             Search and filter your inventory items
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-4">
+        <CardContent className="p-3 md:p-6">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search across all inventory fields..."
+                placeholder="Search inventory..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
               />
             </div>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filters
-            </Button>
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                <Filter className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Filters</span>
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                <Download className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
+            </div>
           </div>
           
           <InventoryTable data={inventory} />

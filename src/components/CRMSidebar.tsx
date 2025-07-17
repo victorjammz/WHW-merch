@@ -72,12 +72,12 @@ export function CRMSidebar() {
   return (
     <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
       <SidebarContent className="bg-card border-r">
-        <div className="p-6 border-b">
+        <div className="p-4 md:p-6 border-b">
           <div className="flex items-center gap-3">
             <img 
               src="/lovable-uploads/44068426-b2cb-498d-b6d1-64702f3a3f2f.png" 
               alt="Warehouse Worship Logo" 
-              className="h-8 w-auto object-contain"
+              className="h-6 md:h-8 w-auto object-contain"
             />
             {!collapsed && (
               <div className="hidden">
@@ -88,7 +88,7 @@ export function CRMSidebar() {
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <SidebarGroupLabel className="px-4 md:px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {!collapsed && "Navigation"}
           </SidebarGroupLabel>
 
@@ -98,12 +98,12 @@ export function CRMSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <SidebarMenuButton asChild className="mx-3 rounded-lg">
+                      <SidebarMenuButton asChild className="mx-2 md:mx-3 rounded-lg min-h-[44px]">
                         <NavLink to={item.url} end className={getNavCls}>
-                          <item.icon className="h-5 w-5" />
-                          {!collapsed && <span className="ml-3">{item.title}</span>}
+                          <item.icon className="h-5 w-5 flex-shrink-0" />
+                          {!collapsed && <span className="ml-3 text-sm md:text-base">{item.title}</span>}
                           {!collapsed && item.allowedRoles?.includes('admin') && (
-                            <ShieldAlert className="ml-auto h-3.5 w-3.5 text-primary opacity-70" />
+                            <ShieldAlert className="ml-auto h-3.5 w-3.5 text-primary opacity-70 flex-shrink-0" />
                           )}
                         </NavLink>
                       </SidebarMenuButton>
@@ -123,7 +123,7 @@ export function CRMSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <SidebarGroupLabel className="px-4 md:px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {!collapsed && "Admin Tools"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -131,10 +131,10 @@ export function CRMSidebar() {
                 <SidebarMenuItem>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <SidebarMenuButton asChild className="mx-3 rounded-lg">
+                      <SidebarMenuButton asChild className="mx-2 md:mx-3 rounded-lg min-h-[44px]">
                         <NavLink to="/user-management" className={getNavCls}>
-                          <CircleUserRound className="h-5 w-5" />
-                          {!collapsed && <span className="ml-3">User Management</span>}
+                          <CircleUserRound className="h-5 w-5 flex-shrink-0" />
+                          {!collapsed && <span className="ml-3 text-sm md:text-base">User Management</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -148,10 +148,10 @@ export function CRMSidebar() {
                 <SidebarMenuItem>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <SidebarMenuButton asChild className="mx-3 rounded-lg">
+                      <SidebarMenuButton asChild className="mx-2 md:mx-3 rounded-lg min-h-[44px]">
                         <NavLink to="/role-management" className={getNavCls}>
-                          <Shield className="h-5 w-5" />
-                          {!collapsed && <span className="ml-3">Role Management</span>}
+                          <Shield className="h-5 w-5 flex-shrink-0" />
+                          {!collapsed && <span className="ml-3 text-sm md:text-base">Role Management</span>}
                         </NavLink>
                       </SidebarMenuButton>
                     </TooltipTrigger>
