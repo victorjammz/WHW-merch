@@ -8,121 +8,88 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 45 36% 96%;
-    --foreground: 30 20% 15%;
-
+    /* Warehouse Worship CRM Theme - Beige, Light Blue, Brown, White, Black */
+    --background: 30 15% 97%;  /* Warm off-white */
+    --foreground: 20 14% 11%;  /* Dark brown */
     --card: 0 0% 100%;
-    --card-foreground: 30 20% 15%;
-
+    --card-foreground: 20 14% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 30 20% 15%;
-
-    --primary: 25 45% 35%;
-    --primary-foreground: 45 30% 95%;
-
-    --secondary: 40 25% 88%;
-    --secondary-foreground: 30 20% 15%;
-
-    --muted: 40 20% 92%;
-    --muted-foreground: 30 10% 45%;
-
-    --accent: 35 40% 85%;
-    --accent-foreground: 30 20% 15%;
-
-    --destructive: 0 65% 55%;
+    --popover-foreground: 20 14% 11%;
+    --primary: 200 50% 45%;     /* Professional light blue */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 35 25% 85%;    /* Light beige */
+    --secondary-foreground: 20 14% 11%;
+    --muted: 35 20% 92%;        /* Very light beige */
+    --muted-foreground: 30 8% 45%;
+    --accent: 25 35% 75%;       /* Warm beige accent */
+    --accent-foreground: 20 14% 11%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-
-    --border: 40 15% 85%;
-    --input: 40 15% 90%;
-    --ring: 25 45% 35%;
-
-    --success: 120 40% 50%;
+    --border: 35 15% 88%;       /* Subtle beige border */
+    --input: 35 15% 88%;
+    --ring: 200 50% 45%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 98%;
-
-    --warning: 45 85% 55%;
-    --warning-foreground: 30 20% 15%;
-
-    --inventory-low: 10 75% 60%;
-    --inventory-medium: 45 85% 55%;
-    --inventory-high: 120 40% 50%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(25 35% 45%));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(40 20% 94%));
-    
-    --shadow-elegant: 0 4px 20px -8px hsl(var(--primary) / 0.2);
-    --shadow-card: 0 2px 12px -4px hsl(30 20% 15% / 0.1);
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+    --inventory-low: 0 72% 51%;
+    --inventory-medium: 38 92% 50%;
+    --inventory-high: 142 71% 45%;
+    --gradient-primary: linear-gradient(135deg, hsl(200, 50%, 45%), hsl(200, 60%, 55%));
+    --gradient-subtle: linear-gradient(180deg, hsl(30, 15%, 97%), hsl(35, 20%, 94%));
+    --shadow-elegant: 0 10px 30px -10px hsl(200 50% 45% / 0.15);
+    --shadow-card: 0 4px 6px -1px hsl(20 14% 11% / 0.08);
+    --sidebar-background: 35 25% 94%;   /* Light beige sidebar */
+    --sidebar-foreground: 20 14% 11%;
+    --sidebar-primary: 200 50% 45%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 35 20% 88%;
+    --sidebar-accent-foreground: 20 14% 11%;
+    --sidebar-border: 35 15% 85%;
+    --sidebar-ring: 200 50% 45%;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 30 20% 8%;
-    --foreground: 45 30% 95%;
-
-    --card: 30 15% 12%;
-    --card-foreground: 45 30% 95%;
-
-    --popover: 30 15% 12%;
-    --popover-foreground: 45 30% 95%;
-
-    --primary: 35 40% 85%;
-    --primary-foreground: 30 20% 15%;
-
-    --secondary: 30 10% 20%;
-    --secondary-foreground: 45 30% 90%;
-
-    --muted: 30 8% 18%;
-    --muted-foreground: 40 15% 60%;
-
-    --accent: 30 15% 25%;
-    --accent-foreground: 45 30% 90%;
-
-    --destructive: 0 65% 45%;
-    --destructive-foreground: 45 30% 95%;
-
-    --border: 30 8% 25%;
-    --input: 30 8% 22%;
-    --ring: 35 40% 85%;
-
-    --success: 120 35% 45%;
-    --success-foreground: 45 30% 95%;
-
-    --warning: 45 75% 50%;
-    --warning-foreground: 30 20% 15%;
-
-    --inventory-low: 10 70% 50%;
-    --inventory-medium: 45 75% 50%;
-    --inventory-high: 120 35% 45%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(35 35% 75%));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(30 15% 10%));
-    
-    --shadow-elegant: 0 4px 20px -8px hsl(0 0% 0% / 0.4);
-    --shadow-card: 0 2px 12px -4px hsl(0 0% 0% / 0.3);
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Dark theme with warm tones */
+    --background: 20 14% 8%;      /* Dark brown */
+    --foreground: 35 25% 90%;     /* Light beige text */
+    --card: 20 14% 10%;
+    --card-foreground: 35 25% 90%;
+    --popover: 20 14% 10%;
+    --popover-foreground: 35 25% 90%;
+    --primary: 200 60% 55%;       /* Brighter blue for dark mode */
+    --primary-foreground: 20 14% 8%;
+    --secondary: 25 20% 20%;      /* Dark beige */
+    --secondary-foreground: 35 25% 90%;
+    --muted: 25 15% 18%;          /* Darker beige muted */
+    --muted-foreground: 30 15% 65%;
+    --accent: 25 25% 25%;         /* Medium brown accent */
+    --accent-foreground: 35 25% 90%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 35 25% 90%;
+    --border: 25 15% 22%;         /* Dark beige border */
+    --input: 25 15% 22%;
+    --ring: 200 60% 55%;
+    --success: 142 71% 45%;
+    --success-foreground: 35 25% 90%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 35 25% 90%;
+    --inventory-low: 0 62.8% 50%;
+    --inventory-medium: 38 92% 50%;
+    --inventory-high: 142 71% 45%;
+    --gradient-primary: linear-gradient(135deg, hsl(200, 60%, 55%), hsl(200, 70%, 65%));
+    --gradient-subtle: linear-gradient(180deg, hsl(20, 14%, 8%), hsl(25, 15%, 15%));
+    --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.2);
+    --sidebar-background: 25 18% 12%;    /* Dark beige sidebar */
+    --sidebar-foreground: 35 25% 85%;
+    --sidebar-primary: 200 60% 55%;
+    --sidebar-primary-foreground: 20 14% 8%;
+    --sidebar-accent: 25 15% 18%;
+    --sidebar-accent-foreground: 35 25% 85%;
+    --sidebar-border: 25 15% 20%;
+    --sidebar-ring: 200 60% 55%;
   }
 }
 

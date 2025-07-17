@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Plus, Package, ShoppingCart, TrendingUp, AlertTriangle } from "lucide-react";
+import { Plus, Package, ShoppingCart, TrendingUp, AlertTriangle, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InventoryTable } from "@/components/InventoryTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
 import { POSConnectionCard } from "@/components/POSConnectionCard";
+import { BarcodeGenerator } from "@/components/BarcodeGenerator";
 
 // Mock data for demonstration
 const mockInventoryData = [
@@ -66,14 +67,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <div className="container mx-auto p-6 space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Inventory Management</h1>
-            <p className="text-muted-foreground text-lg">Manage your clothing store inventory efficiently</p>
-          </div>
+    <div className="p-6 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to Warehouse Worship CRM - Manage your inventory and customers</p>
+        </div>
+        <div className="flex gap-3">
           <Button 
             onClick={() => setShowAddForm(true)} 
             size="lg"
@@ -83,69 +84,83 @@ const Index = () => {
             Add Item
           </Button>
         </div>
+      </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="shadow-card">
+          <Card className="shadow-card border-l-4 border-l-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Inventory</CardTitle>
               <Package className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalItems}</div>
-              <p className="text-xs text-muted-foreground">Items in stock</p>
+              <div className="text-3xl font-bold text-foreground">{stats.totalItems}</div>
+              <p className="text-xs text-muted-foreground mt-1">Items in stock</p>
             </CardContent>
           </Card>
 
-          <Card className="shadow-card">
+          <Card className="shadow-card border-l-4 border-l-success">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
               <TrendingUp className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalValue.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Inventory value</p>
+              <div className="text-3xl font-bold text-foreground">${stats.totalValue.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground mt-1">+12% from last month</p>
             </CardContent>
           </Card>
 
-          <Card className="shadow-card">
+          <Card className="shadow-card border-l-4 border-l-accent">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Products</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
               <ShoppingCart className="h-5 w-5 text-accent-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalProducts}</div>
-              <p className="text-xs text-muted-foreground">Unique products</p>
+              <div className="text-3xl font-bold text-foreground">{stats.totalProducts}</div>
+              <p className="text-xs text-muted-foreground mt-1">Unique SKUs</p>
             </CardContent>
           </Card>
 
-          <Card className="shadow-card">
+          <Card className="shadow-card border-l-4 border-l-warning">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Low Stock Alerts</CardTitle>
               <AlertTriangle className="h-5 w-5 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-warning">{stats.lowStockItems}</div>
-              <p className="text-xs text-muted-foreground">Items need restock</p>
+              <div className="text-3xl font-bold text-warning">{stats.lowStockItems}</div>
+              <p className="text-xs text-muted-foreground mt-1">Need immediate attention</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* POS Connection */}
-        <POSConnectionCard />
-
-        {/* Inventory Table */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle>Inventory Overview</CardTitle>
-            <CardDescription>
-              Manage your clothing inventory, track stock levels, and monitor product performance
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <InventoryTable data={inventoryData} />
-          </CardContent>
-        </Card>
+        {/* CRM Features Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Inventory Management
+                </CardTitle>
+                <CardDescription>
+                  Manage your clothing inventory, track stock levels, and monitor product performance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <InventoryTable data={inventoryData} />
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="space-y-6">
+            <BarcodeGenerator 
+              onGenerate={(code, type) => {
+                console.log('Generated barcode:', code, type);
+              }}
+            />
+            <POSConnectionCard />
+          </div>
+        </div>
 
         {/* Add Inventory Modal */}
         {showAddForm && (
@@ -155,7 +170,6 @@ const Index = () => {
           />
         )}
       </div>
-    </div>
   );
 };
 

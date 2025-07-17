@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Edit, Trash2, Package } from "lucide-react";
+import { Search, Edit, Trash2, Package, QrCode } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -114,11 +114,14 @@ export function InventoryTable({ data }: InventoryTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                    <div className="flex space-x-1">
+                      <Button variant="outline" size="sm" title="Generate Barcode">
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" title="Edit Item">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" title="Delete Item">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
