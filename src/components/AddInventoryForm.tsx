@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Upload, Image, Trash2 } from "lucide-react";
+import { X, Upload, Image, Trash2, Camera, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +56,22 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
       const file = e.target.files[0];
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleCameraCapture = () => {
+    // Trigger the camera input
+    const cameraInput = document.getElementById('camera-upload') as HTMLInputElement;
+    if (cameraInput) {
+      cameraInput.click();
+    }
+  };
+
+  const handleFileUpload = () => {
+    // Trigger the file input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
     }
   };
 
@@ -276,25 +292,58 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
             </div>
           ) : (
             <div className="border border-dashed border-border rounded-md p-4 md:p-6 flex flex-col items-center justify-center h-32 md:h-48 bg-muted/30">
-              <Image className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground mb-2" />
-              <p className="text-xs md:text-sm text-muted-foreground mb-2 text-center">Drag and drop or click to upload</p>
-              <label htmlFor="image-upload" className="cursor-pointer">
-                <Button type="button" variant="outline" size="sm" className="flex items-center gap-1" disabled={isUploading}>
-                  <Upload className="h-3 w-3" />
-                  <span className="text-xs md:text-sm">{isUploading ? "Uploading..." : "Select Image"}</span>
-                </Button>
-                <input
-                  id="image-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
+              <Image className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground mb-3" />
+              <p className="text-xs md:text-sm text-muted-foreground mb-3 text-center">Take a photo or select from device</p>
+              
+              <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2 flex-1" 
                   disabled={isUploading}
-                />
-              </label>
+                  onClick={handleCameraCapture}
+                >
+                  <Camera className="h-4 w-4" />
+                  <span className="text-xs md:text-sm">Camera</span>
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2 flex-1" 
+                  disabled={isUploading}
+                  onClick={handleFileUpload}
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  <span className="text-xs md:text-sm">Browse</span>
+                </Button>
+              </div>
+              
+              {/* Camera input - will prompt camera on mobile */}
+              <input
+                id="camera-upload"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageChange}
+                className="hidden"
+                disabled={isUploading}
+              />
+              
+              {/* File input - for gallery/desktop selection */}
+              <input
+                id="file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                disabled={isUploading}
+              />
             </div>
           )}
-          <p className="text-xs text-muted-foreground">Supported formats: JPEG, PNG, WebP. Max size: 5MB</p>
+          <p className="text-xs text-muted-foreground">Take a photo with camera or select from gallery/desktop. Supported: JPEG, PNG, WebP. Max size: 5MB</p>
         </div>
 
         <div className="space-y-2">
