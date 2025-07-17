@@ -1,0 +1,273 @@
+import { useState, useEffect } from 'react';
+import { QrCode, Camera, X, Plus, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface InventoryItem {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  quantity: number;
+  price: number;
+  image_url?: string | null;
+}
+
+interface BarcodeScannerInventoryProps {
+  onInventoryUpdate?: () => void;
+}
+
+export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInventoryProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [scannedItem, setScannedItem] = useState<InventoryItem | null>(null);
+  const [quantityToAdd, setQuantityToAdd] = useState(1);
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  const { isScanning, startScan, stopScan } = useBarcodeScanner();
+  const { toast } = useToast();
+
+  const handleStartScan = async () => {
+    setIsDialogOpen(true);
+    const result = await startScan();
+    
+    if (result && result.hasContent) {
+      await searchInventoryBySKU(result.content);
+    } else {
+      setIsDialogOpen(false);
+    }
+  };
+
+  const searchInventoryBySKU = async (scannedCode: string) => {
+    try {
+      // First try to find by exact SKU match
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*')
+        .eq('sku', scannedCode)
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        // No item found
+        toast({
+          title: "Item not found",
+          description: `No inventory item found with SKU: ${scannedCode}`,
+          variant: "destructive"
+        });
+        setIsDialogOpen(false);
+        return;
+      }
+
+      if (error) {
+        throw error;
+      }
+
+      setScannedItem(data as InventoryItem);
+    } catch (error) {
+      console.error('Error searching inventory:', error);
+      toast({
+        title: "Search failed",
+        description: "Failed to search for inventory item",
+        variant: "destructive"
+      });
+      setIsDialogOpen(false);
+    }
+  };
+
+  const updateInventoryQuantity = async () => {
+    if (!scannedItem) return;
+
+    setIsUpdating(true);
+    try {
+      const newQuantity = scannedItem.quantity + quantityToAdd;
+      
+      const { error } = await supabase
+        .from('inventory')
+        .update({ 
+          quantity: newQuantity,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', scannedItem.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Inventory updated",
+        description: `Added ${quantityToAdd} units to ${scannedItem.name}. New total: ${newQuantity}`,
+      });
+
+      // Call the callback to refresh inventory
+      onInventoryUpdate?.();
+      
+      setIsDialogOpen(false);
+      setScannedItem(null);
+      setQuantityToAdd(1);
+    } catch (error) {
+      console.error('Error updating inventory:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update inventory quantity",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDialogClose = () => {
+    if (isScanning) {
+      stopScan();
+    }
+    setIsDialogOpen(false);
+    setScannedItem(null);
+    setQuantityToAdd(1);
+  };
+
+  return (
+    <>
+      <Button onClick={handleStartScan} className="flex items-center gap-2">
+        <QrCode className="h-4 w-4" />
+        Scan Barcode
+      </Button>
+
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Barcode Scanner
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {isScanning ? (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center space-y-4">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Camera className="h-6 w-6 text-primary animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Scanner Active</p>
+                      <p className="text-sm text-muted-foreground">
+                        Point your camera at a barcode to scan
+                      </p>
+                    </div>
+                    <Button variant="outline" onClick={stopScan}>
+                      <X className="mr-2 h-4 w-4" />
+                      Cancel Scan
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : scannedItem ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Item Found!</CardTitle>
+                  <CardDescription>
+                    Confirm quantity to add to inventory
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    {scannedItem.image_url ? (
+                      <img 
+                        src={scannedItem.image_url} 
+                        alt={scannedItem.name}
+                        className="h-16 w-16 rounded-md object-cover border"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center">
+                        <QrCode className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-1">
+                      <h3 className="font-medium">{scannedItem.name}</h3>
+                      <p className="text-sm text-muted-foreground">SKU: {scannedItem.sku}</p>
+                      <Badge variant="secondary">{scannedItem.category}</Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Current Stock:</span>
+                      <p className="font-medium">{scannedItem.quantity} units</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Price:</span>
+                      <p className="font-medium">${scannedItem.price.toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Quantity to Add:</label>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setQuantityToAdd(Math.max(1, quantityToAdd - 1))}
+                      >
+                        -
+                      </Button>
+                      <span className="flex-1 text-center font-medium">{quantityToAdd}</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setQuantityToAdd(quantityToAdd + 1)}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleDialogClose} className="flex-1">
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={updateInventoryQuantity} 
+                      disabled={isUpdating}
+                      className="flex-1"
+                    >
+                      {isUpdating ? (
+                        <>Adding...</>
+                      ) : (
+                        <>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Stock
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center space-y-4">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <AlertCircle className="h-6 w-6 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="font-medium">No item found</p>
+                      <p className="text-sm text-muted-foreground">
+                        The scanned barcode doesn't match any inventory items
+                      </p>
+                    </div>
+                    <Button variant="outline" onClick={handleDialogClose}>
+                      Close
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

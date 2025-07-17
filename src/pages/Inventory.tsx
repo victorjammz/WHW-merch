@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Download } from "lucide-react";
+import { Plus, Search, Filter, Download, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InventoryTable } from "@/components/InventoryTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
+import { BarcodeScannerInventory } from "@/components/BarcodeScannerInventory";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -72,27 +73,35 @@ const Inventory = () => {
             Manage your warehouse inventory and stock levels
           </p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-            </DialogHeader>
-            <AddInventoryForm 
-              onAdd={() => {
-                setIsAddDialogOpen(false);
-                // Refresh inventory data
-                window.location.reload();
-              }} 
-              onCancel={() => setIsAddDialogOpen(false)} 
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <BarcodeScannerInventory 
+            onInventoryUpdate={() => {
+              // Refresh inventory data
+              window.location.reload();
+            }} 
+          />
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add New Product</DialogTitle>
+              </DialogHeader>
+              <AddInventoryForm 
+                onAdd={() => {
+                  setIsAddDialogOpen(false);
+                  // Refresh inventory data
+                  window.location.reload();
+                }} 
+                onCancel={() => setIsAddDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Stats Cards */}

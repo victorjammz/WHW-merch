@@ -101,4 +101,13 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Barcode scanner styles */
+  body.scanner-active {
+    visibility: hidden;
+  }
+  
+  body.scanner-active .capacitor-camera-preview {
+    visibility: visible;
+  }
 }
