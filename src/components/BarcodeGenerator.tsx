@@ -153,20 +153,20 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={generateRandomCode} variant="outline" className="flex-1 min-w-0">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Button onClick={generateRandomCode} variant="outline" className="w-full">
             <RotateCcw className="h-4 w-4 mr-2" />
             Generate Random
           </Button>
-          <Button onClick={copyToClipboard} variant="outline" disabled={!barcodeText}>
+          <Button onClick={copyToClipboard} variant="outline" disabled={!barcodeText} className="w-full">
             {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
             {copied ? "Copied!" : "Copy"}
           </Button>
-          <Button onClick={downloadBarcode} variant="outline" disabled={!barcodeText}>
+          <Button onClick={downloadBarcode} variant="outline" disabled={!barcodeText} className="w-full">
             <Download className="h-4 w-4 mr-2" />
             Download
           </Button>
-          <Button onClick={handleGenerate} className="bg-gradient-primary flex-1 min-w-0" disabled={!barcodeText}>
+          <Button onClick={handleGenerate} className="bg-gradient-primary w-full col-span-2 md:col-span-4" disabled={!barcodeText}>
             Generate Barcode
           </Button>
         </div>

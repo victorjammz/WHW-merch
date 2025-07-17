@@ -14,7 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      "Merch Inventory": {
+        Row: {
+          Category: string
+          Colour: number | null
+          Price: number | null
+          "Product Name": string
+          Quantity: number | null
+          Size: number | null
+        }
+        Insert: {
+          Category: string
+          Colour?: number | null
+          Price?: number | null
+          "Product Name": string
+          Quantity?: number | null
+          Size?: number | null
+        }
+        Update: {
+          Category?: string
+          Colour?: number | null
+          Price?: number | null
+          "Product Name"?: string
+          Quantity?: number | null
+          Size?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
