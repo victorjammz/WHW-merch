@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Package, ShoppingCart, TrendingUp, AlertTriangle, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,47 +7,55 @@ import { InventoryTable } from "@/components/InventoryTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
 import { POSConnectionCard } from "@/components/POSConnectionCard";
 import { BarcodeGenerator } from "@/components/BarcodeGenerator";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data for demonstration
-const mockInventoryData = [
-  {
-    id: "1",
-    sku: "CLT-001",
-    name: "Classic Cotton T-Shirt",
-    category: "Shirts",
-    size: "M",
-    color: "White",
-    quantity: 45,
-    price: 29.99,
-    status: "high" as const
-  },
-  {
-    id: "2", 
-    sku: "JNS-002",
-    name: "Slim Fit Jeans",
-    category: "Pants",
-    size: "32",
-    color: "Blue",
-    quantity: 12,
-    price: 89.99,
-    status: "medium" as const
-  },
-  {
-    id: "3",
-    sku: "JKT-003", 
-    name: "Leather Jacket",
-    category: "Outerwear",
-    size: "L",
-    color: "Black",
-    quantity: 3,
-    price: 199.99,
-    status: "low" as const
-  }
-];
+interface InventoryItem {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  size: string | null;
+  color: string | null;
+  quantity: number;
+  price: number;
+  status: "low" | "medium" | "high";
+}
+
+const getStockStatus = (quantity: number): "low" | "medium" | "high" => {
+  if (quantity <= 0) return 'low';
+  if (quantity < 20) return 'medium';
+  return 'high';
+};
 
 const Index = () => {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [inventoryData, setInventoryData] = useState(mockInventoryData);
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*');
+      
+      if (error) {
+        toast({
+          title: "Error fetching inventory",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setInventoryData(data.map(item => ({
+        ...item,
+        status: getStockStatus(item.quantity)
+      })));
+    };
+
+    fetchInventory();
+  }, [toast]);
 
   const stats = {
     totalItems: inventoryData.reduce((sum, item) => sum + item.quantity, 0),
@@ -58,6 +66,8 @@ const Index = () => {
 
   const handleAddInventory = () => {
     setShowAddForm(false);
+    // Refresh inventory data
+    window.location.reload();
   };
 
   return (
