@@ -40,11 +40,29 @@ export function InventoryTable({ data }: InventoryTableProps) {
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    const filtered = data.filter(item =>
-      item.name.toLowerCase().includes(term.toLowerCase()) ||
-      item.sku.toLowerCase().includes(term.toLowerCase()) ||
-      item.category.toLowerCase().includes(term.toLowerCase())
-    );
+    if (!term.trim()) {
+      setFilteredData(data);
+      return;
+    }
+    
+    const searchLower = term.toLowerCase();
+    const filtered = data.filter(item => {
+      // Search across all text-based fields
+      return (
+        // Standard fields
+        (item.name && item.name.toLowerCase().includes(searchLower)) ||
+        (item.sku && item.sku.toLowerCase().includes(searchLower)) ||
+        (item.category && item.category.toLowerCase().includes(searchLower)) ||
+        // Optional fields with null check
+        (item.size && item.size.toLowerCase().includes(searchLower)) ||
+        (item.color && item.color.toLowerCase().includes(searchLower)) ||
+        // Convert numbers to string for searching
+        (item.quantity.toString().includes(searchLower)) ||
+        (item.price.toString().includes(searchLower)) ||
+        // Status field
+        (item.status && item.status.toLowerCase().includes(searchLower))
+      );
+    });
     setFilteredData(filtered);
   };
 
@@ -80,7 +98,7 @@ export function InventoryTable({ data }: InventoryTableProps) {
       <div className="flex items-center space-x-2">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search by name, SKU, or category..."
+          placeholder="Search across all fields (name, SKU, price, quantity, etc.)"
           value={searchTerm}
           onChange={(e) => handleSearch(e.target.value)}
           className="max-w-sm"
