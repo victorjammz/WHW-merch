@@ -154,7 +154,7 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Button onClick={generateRandomCode} variant="outline" className="w-full">
+          <Button onClick={generateRandomCode} variant="outline" className="w-full min-w-[150px] py-2">
             <RotateCcw className="h-4 w-4 mr-2" />
             Generate Random
           </Button>
