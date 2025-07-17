@@ -122,6 +122,81 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          address: string | null
+          avatar_url: string | null
+          company_name: string | null
+          created_at: string
+          currency: string | null
+          date_format: string | null
+          email_notifications: boolean | null
+          id: string
+          language: string | null
+          low_stock_alerts: boolean | null
+          order_updates: boolean | null
+          password_expiry: number | null
+          phone: string | null
+          push_notifications: boolean | null
+          session_timeout: number | null
+          sidebar_collapsed: boolean | null
+          sms_notifications: boolean | null
+          theme: string | null
+          timezone: string | null
+          two_factor_auth: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string | null
+          date_format?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          low_stock_alerts?: boolean | null
+          order_updates?: boolean | null
+          password_expiry?: number | null
+          phone?: string | null
+          push_notifications?: boolean | null
+          session_timeout?: number | null
+          sidebar_collapsed?: boolean | null
+          sms_notifications?: boolean | null
+          theme?: string | null
+          timezone?: string | null
+          two_factor_auth?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          avatar_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string | null
+          date_format?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          low_stock_alerts?: boolean | null
+          order_updates?: boolean | null
+          password_expiry?: number | null
+          phone?: string | null
+          push_notifications?: boolean | null
+          session_timeout?: number | null
+          sidebar_collapsed?: boolean | null
+          sms_notifications?: boolean | null
+          theme?: string | null
+          timezone?: string | null
+          two_factor_auth?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
