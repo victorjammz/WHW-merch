@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, RotateCcw, Copy, Check, QrCode, Zap, Sparkles } from "lucide-react";
+import { Download, RotateCcw, Copy, Check, QrCode, Zap, Sparkles, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BarcodeGeneratorProps {
   defaultValue?: string;
@@ -16,9 +18,16 @@ interface BarcodeGeneratorProps {
 export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGeneratorProps) {
   const [barcodeText, setBarcodeText] = useState(defaultValue);
   const [barcodeType, setBarcodeType] = useState("CODE128");
+  const [productName, setProductName] = useState("");
+  const [sku, setSku] = useState("");
+  const [category, setCategory] = useState("");
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const categories = ["Apparel", "Books", "Accessories", "Electronics", "Home & Garden", "Sports", "Other"];
 
   const barcodeTypes = [
     { value: "CODE128", label: "Code 128", icon: "📊" },
@@ -76,6 +85,118 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
         description: "Failed to copy to clipboard",
         variant: "destructive",
       });
+    }
+  };
+
+  const saveToDatabase = async () => {
+    if (!user || !barcodeText.trim()) {
+      toast({
+        title: "⚠️ Cannot Save",
+        description: "Please ensure you're logged in and have a barcode to save",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // First, create the barcode image and upload it
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Cannot create canvas context');
+
+      canvas.width = 400;
+      canvas.height = 120;
+      
+      // Background with gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(1, '#f8fafc');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Border
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+      
+      // Draw barcode bars
+      ctx.fillStyle = '#1e293b';
+      const barWidth = 3;
+      const barSpacing = 1;
+      const startX = 20;
+      const barHeight = 60;
+      const startY = 20;
+      
+      for (let i = 0; i < barcodeText.length * 6; i++) {
+        const pattern = barcodeText.charCodeAt(i % barcodeText.length) % 4;
+        if (pattern % 2 === 0) {
+          ctx.fillRect(startX + i * (barWidth + barSpacing), startY, barWidth, barHeight);
+        }
+      }
+      
+      // Add text
+      ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#334155';
+      ctx.fillText(barcodeText, canvas.width / 2, startY + barHeight + 25);
+      
+      ctx.font = '12px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(barcodeType, canvas.width / 2, startY + barHeight + 40);
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), 'image/png');
+      });
+
+      // Upload to storage
+      const fileName = `${user.id}/${Date.now()}-${barcodeText}.png`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('barcodes')
+        .upload(fileName, blob);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('barcodes')
+        .getPublicUrl(fileName);
+
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('barcodes')
+        .insert({
+          user_id: user.id,
+          sku: sku || null,
+          product_name: productName || null,
+          barcode_text: barcodeText,
+          barcode_type: barcodeType,
+          category: category || null,
+          image_url: publicUrl
+        });
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "✅ Barcode Saved!",
+        description: "Barcode has been saved to your library",
+      });
+
+      // Reset form fields if desired
+      // setProductName("");
+      // setSku("");
+      // setCategory("");
+      
+    } catch (error) {
+      console.error('Error saving barcode:', error);
+      toast({
+        title: "❌ Save Failed",
+        description: "Failed to save barcode to database",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -187,6 +308,48 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
               </SelectContent>
             </Select>
           </div>
+
+          {/* Product Information */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-muted-foreground">
+              Product Information (Optional)
+            </Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="product-name" className="text-xs">Product Name</Label>
+                <Input
+                  id="product-name"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="e.g., Classic T-Shirt"
+                  className="text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sku" className="text-xs">SKU</Label>
+                <Input
+                  id="sku"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="e.g., TSH-001"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-xs">Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         {barcodeText && (
@@ -251,6 +414,16 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
           >
             <QrCode className="h-4 w-4 mr-2" />
             Generate Professional Barcode
+          </Button>
+
+          <Button 
+            onClick={saveToDatabase} 
+            variant="secondary"
+            className="w-full py-3 hover-scale border-2 border-primary/20 hover:border-primary/40" 
+            disabled={!barcodeText || isSaving}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? "Saving..." : "Save to Library"}
           </Button>
         </div>
       </CardContent>

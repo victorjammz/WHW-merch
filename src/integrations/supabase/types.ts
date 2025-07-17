@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      barcodes: {
+        Row: {
+          barcode_text: string
+          barcode_type: string
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          product_name: string | null
+          sku: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barcode_text: string
+          barcode_type?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          product_name?: string | null
+          sku?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barcode_text?: string
+          barcode_type?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          product_name?: string | null
+          sku?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           barcode_text: string | null

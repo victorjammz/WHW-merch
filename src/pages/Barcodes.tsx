@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Download, Printer, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Download, Printer, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { BarcodeGenerator } from "@/components/BarcodeGenerator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface BarcodeItem {
+  id: string;
+  sku: string | null;
+  product_name: string | null;
+  barcode_text: string;
+  barcode_type: string;
+  category: string | null;
+  image_url: string | null;
+  created_at: string;
+  user_id: string;
+  profiles?: {
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+}
 
 // Mock barcode data
 const mockBarcodes = [
@@ -42,20 +62,116 @@ const mockBarcodes = [
 const Barcodes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [barcodes, setBarcodes] = useState<BarcodeItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const filteredBarcodes = mockBarcodes.filter(barcode =>
-    barcode.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    barcode.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    barcode.barcodeText.includes(searchTerm)
+  // Fetch barcodes from database
+  useEffect(() => {
+    const fetchBarcodes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('barcodes')
+          .select(`
+            *,
+            profiles (
+              email,
+              first_name,
+              last_name
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setBarcodes(data as any || []);
+      } catch (error) {
+        console.error('Error fetching barcodes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load barcodes",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBarcodes();
+  }, [toast]);
+
+  const filteredBarcodes = barcodes.filter(barcode =>
+    (barcode.sku?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (barcode.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    barcode.barcode_text.includes(searchTerm)
   );
 
-  const handlePrint = (barcode: any) => {
-    window.print();
+  // Helper function to get user display name
+  const getUserDisplayName = (barcode: BarcodeItem): string => {
+    if (barcode.profiles?.first_name || barcode.profiles?.last_name) {
+      return `${barcode.profiles.first_name || ''} ${barcode.profiles.last_name || ''}`.trim();
+    }
+    return barcode.profiles?.email?.split('@')[0] || 'Unknown User';
   };
 
-  const handleDownload = (barcode: any) => {
-    // This would typically generate a downloadable barcode image
-    console.log("Downloading barcode for:", barcode.sku);
+  // Helper function to get user initials
+  const getUserInitials = (barcode: BarcodeItem): string => {
+    if (barcode.profiles?.first_name && barcode.profiles?.last_name) {
+      return `${barcode.profiles.first_name[0]}${barcode.profiles.last_name[0]}`;
+    }
+    return barcode.profiles?.email?.[0]?.toUpperCase() || 'U';
+  };
+
+  const handleRefresh = () => {
+    setIsLoading(true);
+    // Trigger a refresh after saving
+    const fetchBarcodes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('barcodes')
+          .select(`
+            *,
+            profiles (
+              email,
+              first_name,
+              last_name
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setBarcodes(data as any || []);
+      } catch (error) {
+        console.error('Error fetching barcodes:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load barcodes",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBarcodes();
+  };
+
+  const handlePrint = (barcode: BarcodeItem) => {
+    // Open barcode image in new window for printing
+    if (barcode.image_url) {
+      const printWindow = window.open(barcode.image_url, '_blank');
+      printWindow?.focus();
+    }
+  };
+
+  const handleDownload = (barcode: BarcodeItem) => {
+    if (barcode.image_url) {
+      const link = document.createElement('a');
+      link.href = barcode.image_url;
+      link.download = `barcode-${barcode.barcode_text}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -92,7 +208,7 @@ const Barcodes = () => {
             <CardTitle className="text-sm font-medium">Total Barcodes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockBarcodes.length}</div>
+            <div className="text-2xl font-bold">{barcodes.length}</div>
             <p className="text-xs text-muted-foreground">
               Generated barcodes
             </p>
@@ -104,7 +220,7 @@ const Barcodes = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockBarcodes.filter(b => b.category === "Apparel").length}
+              {barcodes.filter(b => b.category === "Apparel").length}
             </div>
             <p className="text-xs text-muted-foreground">
               Apparel barcodes
@@ -117,7 +233,7 @@ const Barcodes = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockBarcodes.filter(b => b.category === "Books").length}
+              {barcodes.filter(b => b.category === "Books").length}
             </div>
             <p className="text-xs text-muted-foreground">
               Book barcodes
@@ -130,7 +246,7 @@ const Barcodes = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {mockBarcodes.filter(b => b.category === "Accessories").length}
+              {barcodes.filter(b => b.category === "Accessories").length}
             </div>
             <p className="text-xs text-muted-foreground">
               Accessory barcodes
@@ -169,6 +285,7 @@ const Barcodes = () => {
                 <TableHead>Barcode</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Created By</TableHead>
                 <TableHead>Generated</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -177,28 +294,38 @@ const Barcodes = () => {
               {filteredBarcodes.map((barcode) => (
                 <TableRow key={barcode.id}>
                   <TableCell>
-                    <div className="font-medium">{barcode.sku}</div>
+                    <div className="font-medium">{barcode.sku || 'N/A'}</div>
                   </TableCell>
                   <TableCell>
-                    <div>{barcode.productName}</div>
+                    <div>{barcode.product_name || 'N/A'}</div>
                   </TableCell>
                   <TableCell>
                     <div className="font-mono text-sm">
-                      {barcode.barcodeText}
+                      {barcode.barcode_text}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {barcode.barcodeType}
+                      {barcode.barcode_type}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {barcode.category}
+                      {barcode.category || 'Uncategorized'}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">{barcode.lastGenerated}</div>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">
+                          {getUserInitials(barcode)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{getUserDisplayName(barcode)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{new Date(barcode.created_at).toLocaleDateString()}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
