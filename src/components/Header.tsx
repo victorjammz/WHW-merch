@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,41 +9,44 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
-interface HeaderProps {
-  userEmail?: string;
-}
-
-export function Header({ userEmail }: HeaderProps) {
+export function Header() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to log out. Please try again.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
-      });
-      navigate("/auth");
-    }
+    await signOut();
     setIsLoggingOut(false);
+    navigate("/auth");
   };
 
-  const getInitials = (email: string) => {
-    return email.split('@')[0].charAt(0).toUpperCase();
+  const getInitials = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name[0]}${profile.last_name[0]}`.toUpperCase();
+    }
+    
+    if (user?.email) {
+      return user.email.split('@')[0].charAt(0).toUpperCase();
+    }
+    
+    return "U";
+  };
+
+  const getDisplayName = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name} ${profile.last_name}`;
+    }
+    
+    if (profile?.first_name) {
+      return profile.first_name;
+    }
+    
+    return user?.email || "User";
   };
 
   return (
@@ -58,17 +61,28 @@ export function Header({ userEmail }: HeaderProps) {
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-gradient-primary text-white">
-                  {userEmail ? getInitials(userEmail) : <User className="h-4 w-4" />}
+                  {getInitials()}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <div className="flex flex-col space-y-1 p-2">
-              <p className="text-sm font-medium leading-none">{userEmail}</p>
+              <div className="flex justify-between items-center">
+                <p className="text-sm font-medium leading-none">{getDisplayName()}</p>
+                {profile?.role === 'admin' && (
+                  <Badge className="ml-2 bg-primary text-xs">Admin</Badge>
+                )}
+              </div>
               <p className="text-xs leading-none text-muted-foreground">
-                Authenticated User
+                {user?.email}
               </p>
+              {profile?.role && (
+                <div className="flex items-center mt-1 text-xs text-muted-foreground">
+                  <Shield className="h-3 w-3 mr-1" />
+                  {profile.role === 'admin' ? 'Administrator' : 'Employee'}
+                </div>
+              )}
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/settings")}>

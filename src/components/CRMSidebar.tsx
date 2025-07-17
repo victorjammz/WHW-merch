@@ -1,4 +1,15 @@
-import { Package, BarChart3, Users, Settings, QrCode, ShoppingCart, TrendingUp, FileText } from "lucide-react";
+import { 
+  Package, 
+  BarChart3, 
+  Users, 
+  Settings, 
+  QrCode, 
+  ShieldAlert, 
+  ShoppingCart, 
+  TrendingUp, 
+  FileText,
+  CircleUserRound
+} from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -11,10 +22,25 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const navigationItems = [
+// Define navigation items with role restrictions
+interface NavigationItem {
+  title: string;
+  url: string;
+  icon: React.ElementType;
+  allowedRoles?: ('admin' | 'employee')[];
+}
+
+const navigationItems: NavigationItem[] = [
   { title: "Dashboard", url: "/", icon: BarChart3 },
-  { title: "Inventory", url: "/inventory", icon: Package },
+  { 
+    title: "Inventory", 
+    url: "/inventory", 
+    icon: Package,
+    allowedRoles: ['admin'] // Only admins can access inventory management
+  },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Orders", url: "/orders", icon: ShoppingCart },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
@@ -28,10 +54,20 @@ export function CRMSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  const { profile, isAdmin } = useAuth();
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-primary/10 text-primary font-medium border-r-2 border-primary" : "hover:bg-muted/50";
+
+  // Filter navigation items based on user role
+  const filteredNavItems = navigationItems.filter(item => {
+    // If no roles specified, everyone can access
+    if (!item.allowedRoles) return true;
+    
+    // Check if user's role is in the allowed roles
+    return item.allowedRoles.includes(profile?.role || 'employee');
+  });
 
   return (
     <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
@@ -58,19 +94,61 @@ export function CRMSidebar() {
 
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {filteredNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="mx-3 rounded-lg">
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span className="ml-3">{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton asChild className="mx-3 rounded-lg">
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-5 w-5" />
+                          {!collapsed && <span className="ml-3">{item.title}</span>}
+                          {!collapsed && item.allowedRoles?.includes('admin') && (
+                            <ShieldAlert className="ml-auto h-3.5 w-3.5 text-primary opacity-70" />
+                          )}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">
+                        {item.title}
+                        {item.allowedRoles?.includes('admin') && " (Admin Only)"}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              {!collapsed && "Admin Tools"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton asChild className="mx-3 rounded-lg">
+                        <NavLink to="/user-management" className={getNavCls}>
+                          <CircleUserRound className="h-5 w-5" />
+                          {!collapsed && <span className="ml-3">User Management</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">
+                        User Management
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,8 +7,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { CRMSidebar } from "@/components/CRMSidebar";
 import { Header } from "@/components/Header";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 // Pages
 import Index from "./pages/Index";
@@ -20,70 +19,85 @@ import Analytics from "./pages/Analytics";
 import Barcodes from "./pages/Barcodes";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import UserManagement from "./pages/UserManagement";
 import Auth from "./pages/Auth";
+import Unauthorized from "./pages/Unauthorized";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+const AppRoutes = () => {
+  const { profile, isAdmin } = useAuth();
 
   return (
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <SidebarProvider>
+              <div className="flex min-h-screen w-full bg-gradient-subtle">
+                <CRMSidebar />
+                <div className="flex-1 flex flex-col">
+                  <Header />
+                  <main className="flex-1 overflow-auto">
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      
+                      {/* Admin-only routes */}
+                      <Route 
+                        path="/inventory" 
+                        element={
+                          <RoleProtectedRoute allowedRoles={['admin']}>
+                            <Inventory />
+                          </RoleProtectedRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/user-management" 
+                        element={
+                          <RoleProtectedRoute allowedRoles={['admin']}>
+                            <UserManagement />
+                          </RoleProtectedRoute>
+                        } 
+                      />
+                      
+                      {/* Routes accessible by both roles */}
+                      <Route path="/customers" element={<Customers />} />
+                      <Route path="/orders" element={<Orders />} />
+                      <Route path="/analytics" element={<Analytics />} />
+                      <Route path="/barcodes" element={<Barcodes />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/settings" element={<Settings />} />
+                      
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </main>
+                </div>
+              </div>
+            </SidebarProvider>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+};
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <SidebarProvider>
-                      <div className="flex min-h-screen w-full bg-gradient-subtle">
-                        <CRMSidebar />
-                        <div className="flex-1 flex flex-col">
-                          <Header userEmail={user?.email} />
-                          <main className="flex-1 overflow-auto">
-                            <Routes>
-                              <Route path="/" element={<Index />} />
-                              <Route path="/inventory" element={<Inventory />} />
-                              <Route path="/customers" element={<Customers />} />
-                              <Route path="/orders" element={<Orders />} />
-                              <Route path="/analytics" element={<Analytics />} />
-                              <Route path="/barcodes" element={<Barcodes />} />
-                              <Route path="/reports" element={<Reports />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="*" element={<Navigate to="/" replace />} />
-                            </Routes>
-                          </main>
-                        </div>
-                      </div>
-                    </SidebarProvider>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <div className="min-h-screen bg-background">
+              <AppRoutes />
+            </div>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
