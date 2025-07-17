@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface InventoryItem {
   id: string;
@@ -30,6 +31,7 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
   
   const { isScanning, startScan, stopScan } = useBarcodeScanner();
   const { toast } = useToast();
+  const { formatPrice } = useCurrency();
 
   const handleStartScan = async () => {
     setIsDialogOpen(true);
@@ -208,7 +210,7 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
                     </div>
                     <div>
                       <span className="text-muted-foreground">Price:</span>
-                      <p className="font-medium">${scannedItem.price.toFixed(2)}</p>
+                      <p className="font-medium">{formatPrice(scannedItem.price)}</p>
                     </div>
                   </div>
 

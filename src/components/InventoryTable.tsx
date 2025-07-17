@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Edit, Trash2, Package, QrCode, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,7 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
     price: ""
   });
   const { toast } = useToast();
+  const { formatPrice, getCurrencySymbol, currency } = useCurrency();
 
   const categories = ["Shirts", "Pants", "Dresses", "Outerwear", "Shoes", "Accessories", "Underwear", "Activewear"];
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -226,7 +228,7 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
                   <TableCell className="hidden md:table-cell text-sm">{item.size}</TableCell>
                   <TableCell className="hidden md:table-cell text-sm">{item.color}</TableCell>
                   <TableCell className="font-semibold text-sm">{item.quantity}</TableCell>
-                  <TableCell className="text-sm">${item.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-sm">{formatPrice(item.price)}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(item.status)}>
                       {getStatusText(item.status)}
@@ -379,7 +381,7 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="edit-price">Price</Label>
+                <Label htmlFor="edit-price">Price ({getCurrencySymbol(currency)})</Label>
                 <Input
                   id="edit-price"
                   type="number"

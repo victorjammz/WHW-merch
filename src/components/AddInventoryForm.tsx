@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface AddInventoryFormProps {
   onAdd: () => void;
@@ -36,6 +37,7 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   const { toast } = useToast();
+  const { getCurrencySymbol, currency } = useCurrency();
 
   const categories = [
     "Shirts",
@@ -254,7 +256,7 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="price">Price *</Label>
+            <Label htmlFor="price">Price ({getCurrencySymbol(currency)}) *</Label>
             <Input
               id="price"
               type="number"
