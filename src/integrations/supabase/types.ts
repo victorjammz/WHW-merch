@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       "Merch Inventory": {
         Row: {
+          barcode_text: string | null
+          barcode_type: string | null
           Category: string
           Colour: number | null
           Price: number | null
@@ -24,6 +26,8 @@ export type Database = {
           Size: number | null
         }
         Insert: {
+          barcode_text?: string | null
+          barcode_type?: string | null
           Category: string
           Colour?: number | null
           Price?: number | null
@@ -32,6 +36,8 @@ export type Database = {
           Size?: number | null
         }
         Update: {
+          barcode_text?: string | null
+          barcode_type?: string | null
           Category?: string
           Colour?: number | null
           Price?: number | null
