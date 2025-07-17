@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      inventory: {
+        Row: {
+          category: string
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          price: number
+          quantity: number
+          size: string | null
+          sku: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          price: number
+          quantity?: number
+          size?: string | null
+          sku: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          quantity?: number
+          size?: string | null
+          sku?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       "Merch Inventory": {
         Row: {
           barcode_text: string | null
