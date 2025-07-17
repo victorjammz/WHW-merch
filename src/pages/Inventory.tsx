@@ -78,6 +78,26 @@ const Inventory = () => {
       })
     : inventory;
 
+  const handleRefresh = async () => {
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*');
+    
+    if (error) {
+      toast({
+        title: "Error fetching inventory",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInventory(data.map(item => ({
+      ...item,
+      status: getStockStatus(item.quantity)
+    })));
+  };
+
   // Calculate stats based on filtered data
   const totalItems = filteredInventory.reduce((sum, item) => sum + item.quantity, 0);
   const totalProducts = filteredInventory.length;
@@ -204,7 +224,7 @@ const Inventory = () => {
             </div>
           </div>
           
-          <InventoryTable data={filteredInventory} />
+          <InventoryTable data={filteredInventory} onRefresh={handleRefresh} />
         </CardContent>
       </Card>
       

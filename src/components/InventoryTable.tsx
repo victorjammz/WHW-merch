@@ -1,6 +1,15 @@
+import { useState } from "react";
 import { Edit, Trash2, Package, QrCode, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BarcodeGenerator } from "@/components/BarcodeGenerator";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -30,9 +39,102 @@ interface InventoryItem {
 
 interface InventoryTableProps {
   data: InventoryItem[];
+  onRefresh?: () => void;
 }
 
-export function InventoryTable({ data }: InventoryTableProps) {
+export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
+  const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    category: "",
+    size: "",
+    color: "",
+    quantity: "",
+    price: ""
+  });
+  const { toast } = useToast();
+
+  const categories = ["Shirts", "Pants", "Dresses", "Outerwear", "Shoes", "Accessories", "Underwear", "Activewear"];
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+  const colors = ["Black", "White", "Grey", "Navy", "Brown", "Beige", "Red", "Blue", "Green"];
+
+  // Handle edit dialog
+  const handleEditClick = (item: InventoryItem) => {
+    setEditItem(item);
+    setEditForm({
+      name: item.name,
+      category: item.category,
+      size: item.size || "",
+      color: item.color || "",
+      quantity: item.quantity.toString(),
+      price: item.price.toString()
+    });
+  };
+
+  // Handle edit save
+  const handleEditSave = async () => {
+    if (!editItem) return;
+
+    try {
+      const { error } = await supabase
+        .from('inventory')
+        .update({
+          name: editForm.name,
+          category: editForm.category,
+          size: editForm.size || null,
+          color: editForm.color || null,
+          quantity: parseInt(editForm.quantity),
+          price: parseFloat(editForm.price)
+        })
+        .eq('id', editItem.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Item updated successfully"
+      });
+      
+      setEditItem(null);
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update item",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle delete
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+
+    try {
+      const { error } = await supabase
+        .from('inventory')
+        .delete()
+        .eq('id', deleteItem.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Item deleted successfully"
+      });
+      
+      setDeleteItem(null);
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete item",
+        variant: "destructive"
+      });
+    }
+  };
   const getStatusColor = (status: string) => {
     switch (status) {
       case "low":
@@ -131,17 +233,35 @@ export function InventoryTable({ data }: InventoryTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="outline" size="sm" title="Generate Barcode" className="h-8 w-8 p-0">
-                        <QrCode className="h-3 w-3" />
-                      </Button>
-                      <Button variant="outline" size="sm" title="Edit Item" className="h-8 w-8 p-0">
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button variant="outline" size="sm" title="Delete Item" className="h-8 w-8 p-0">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                     <div className="flex gap-1">
+                       <Button 
+                         variant="outline" 
+                         size="sm" 
+                         title="Generate Barcode" 
+                         className="h-8 w-8 p-0"
+                         onClick={() => setSelectedItem(item)}
+                       >
+                         <QrCode className="h-3 w-3" />
+                       </Button>
+                       <Button 
+                         variant="outline" 
+                         size="sm" 
+                         title="Edit Item" 
+                         className="h-8 w-8 p-0"
+                         onClick={() => handleEditClick(item)}
+                       >
+                         <Edit className="h-3 w-3" />
+                       </Button>
+                       <Button 
+                         variant="outline" 
+                         size="sm" 
+                         title="Delete Item" 
+                         className="h-8 w-8 p-0"
+                         onClick={() => setDeleteItem(item)}
+                       >
+                         <Trash2 className="h-3 w-3" />
+                       </Button>
+                     </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -159,6 +279,148 @@ export function InventoryTable({ data }: InventoryTableProps) {
           </Table>
         </div>
       </div>
+
+      {/* Barcode Generator Dialog */}
+      <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Generate Barcode</DialogTitle>
+            <DialogDescription>
+              Generate a barcode for {selectedItem?.name} (SKU: {selectedItem?.sku})
+            </DialogDescription>
+          </DialogHeader>
+          {selectedItem && (
+            <BarcodeGenerator 
+              defaultValue={selectedItem.sku} 
+              onGenerate={(code, type) => {
+                // Optionally update the item's barcode in the database
+                console.log(`Generated ${type} barcode: ${code} for ${selectedItem.name}`);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={!!editItem} onOpenChange={() => setEditItem(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+            <DialogDescription>
+              Update the details for {editItem?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Product Name</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                placeholder="Product name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Select value={editForm.category} onValueChange={(value) => setEditForm({...editForm, category: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-size">Size</Label>
+                <Select value={editForm.size} onValueChange={(value) => setEditForm({...editForm, size: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sizes.map((size) => (
+                      <SelectItem key={size} value={size}>{size}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-color">Color</Label>
+                <Select value={editForm.color} onValueChange={(value) => setEditForm({...editForm, color: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {colors.map((color) => (
+                      <SelectItem key={color} value={color}>{color}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-quantity">Quantity</Label>
+                <Input
+                  id="edit-quantity"
+                  type="number"
+                  value={editForm.quantity}
+                  onChange={(e) => setEditForm({...editForm, quantity: e.target.value})}
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-price">Price</Label>
+                <Input
+                  id="edit-price"
+                  type="number"
+                  step="0.01"
+                  value={editForm.price}
+                  onChange={(e) => setEditForm({...editForm, price: e.target.value})}
+                  placeholder="0.00"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setEditItem(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditSave}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteItem} onOpenChange={() => setDeleteItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteItem?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
