@@ -18,7 +18,7 @@ import { lazy, Suspense } from "react";
 const Index = lazy(() => import("./pages/Index"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const Customers = lazy(() => import("./pages/Customers"));
-const Orders = lazy(() => import("./pages/Orders"));
+
 const EventOrders = lazy(() => import("./pages/EventOrders"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Barcodes = lazy(() => import("./pages/Barcodes"));
@@ -98,7 +98,7 @@ const AppRoutes = () => {
                         
                         {/* Routes accessible by both roles */}
                         <Route path="/customers" element={<Customers />} />
-                        <Route path="/orders" element={<Orders />} />
+                        
                         <Route path="/event-orders" element={<EventOrders />} />
                         <Route path="/analytics" element={<Analytics />} />
                         <Route path="/barcodes" element={<Barcodes />} />

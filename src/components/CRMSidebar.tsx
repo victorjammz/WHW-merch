@@ -43,7 +43,7 @@ const navigationItems: NavigationItem[] = [
     icon: Package
   },
   { title: "Customers", url: "/customers", icon: Users },
-  { title: "Orders", url: "/orders", icon: ShoppingCart },
+  
   { title: "Event Orders", url: "/event-orders", icon: Calendar },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
   { title: "Barcodes", url: "/barcodes", icon: QrCode },
