@@ -72,7 +72,7 @@ export function CRMSidebar() {
   });
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
+    <Sidebar className={`${collapsed ? "w-16" : "w-64"} hidden md:block`} collapsible="icon">
       <SidebarContent className="bg-card border-r">
         <div className="p-4 md:p-6 border-b">
           <div className="flex items-center gap-3">

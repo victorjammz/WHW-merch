@@ -9,6 +9,7 @@ import {
   FileText,
   CircleUserRound,
   Shield,
+  Calendar,
   X
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -32,6 +33,7 @@ const navigationItems: NavigationItem[] = [
   },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Orders", url: "/orders", icon: ShoppingCart },
+  { title: "Event Orders", url: "/event-orders", icon: Calendar },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
   { title: "Barcodes", url: "/barcodes", icon: QrCode },
   { title: "Reports", url: "/reports", icon: FileText },
