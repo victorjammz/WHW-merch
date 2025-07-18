@@ -81,7 +81,8 @@ export const useBarcodeScanner = () => {
   };
 
   const startScan = async (): Promise<BarcodeScanResult | null> => {
-    console.log('Starting barcode scan...');
+    console.log('🔍 Starting barcode scan...');
+    console.log('📱 Platform check - isNativePlatform:', Capacitor.isNativePlatform());
 
     // Check permissions first
     const hasPermissions = await checkPermission();
