@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw } from "lucide-react";
+import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw, Calendar, MapPin, Plus, Edit, Eye, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,10 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CURRENCY_SYMBOLS, CURRENCY_NAMES } from "@/contexts/CurrencyContext";
-import { getAvailableDateFormats } from "@/utils/dateFormatting";
+import { getAvailableDateFormats, formatDateWithUserSettings } from "@/utils/dateFormatting";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -32,11 +35,30 @@ const Settings = () => {
     confirmPassword: ''
   });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // Events Management state
+  const [events, setEvents] = useState<any[]>([]);
+  const [eventLogs, setEventLogs] = useState<any[]>([]);
+  const [isEventsLoading, setIsEventsLoading] = useState(false);
+  const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [eventForm, setEventForm] = useState({
+    name: "",
+    location: "",
+    event_date: ""
+  });
+  const [activeEventsTab, setActiveEventsTab] = useState("events");
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["profile", "notifications", "security", "regional", "appearance"].includes(tab)) {
+    if (tab && ["profile", "notifications", "security", "regional", "appearance", "events"].includes(tab)) {
       setActiveTab(tab);
+    }
+    
+    if (tab === "events") {
+      fetchEvents();
+      fetchEventLogs();
     }
   }, [searchParams]);
 
@@ -207,6 +229,127 @@ const Settings = () => {
     await updateSettings(defaultSettings);
   };
 
+  // Events Management functions
+  const fetchEvents = async () => {
+    setIsEventsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          profiles!events_created_by_fkey(first_name, last_name, email)
+        `)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load events",
+        variant: "destructive"
+      });
+    } finally {
+      setIsEventsLoading(false);
+    }
+  };
+
+  const fetchEventLogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('event_logs')
+        .select(`
+          *,
+          events(name),
+          profiles!event_logs_performed_by_fkey(first_name, last_name, email)
+        `)
+        .order('performed_at', { ascending: false })
+        .limit(50);
+        
+      if (error) throw error;
+      setEventLogs(data || []);
+    } catch (error) {
+      console.error('Error fetching event logs:', error);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!eventForm.name || !eventForm.location || !eventForm.event_date) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert([{
+          name: eventForm.name,
+          location: eventForm.location,
+          event_date: eventForm.event_date,
+          created_by: user?.id
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Event created successfully"
+      });
+
+      setEventForm({ name: "", location: "", event_date: "" });
+      setIsCreateEventOpen(false);
+      fetchEvents();
+      fetchEventLogs();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create event: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Event deleted successfully"
+      });
+
+      fetchEvents();
+      fetchEventLogs();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to delete event: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleViewEvent = (event: any) => {
+    setSelectedEvent(event);
+    setIsEventDetailsOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -225,12 +368,13 @@ const Settings = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
           <TabsTrigger value="profile" className="text-xs md:text-sm p-2">Profile</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs md:text-sm p-2">Notifications</TabsTrigger>
           <TabsTrigger value="security" className="text-xs md:text-sm p-2">Security</TabsTrigger>
           <TabsTrigger value="regional" className="text-xs md:text-sm p-2">Regional</TabsTrigger>
           <TabsTrigger value="appearance" className="text-xs md:text-sm p-2">Appearance</TabsTrigger>
+          <TabsTrigger value="events" className="text-xs md:text-sm p-2">Events</TabsTrigger>
         </TabsList>
 
         {/* Profile Settings */}
@@ -754,7 +898,266 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Events Management */}
+        <TabsContent value="events">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Events Management
+              </CardTitle>
+              <CardDescription>
+                Create and manage events for order categories
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Tabs value={activeEventsTab} onValueChange={setActiveEventsTab} className="space-y-4">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="events">Events</TabsTrigger>
+                  <TabsTrigger value="logs">Event Log</TabsTrigger>
+                </TabsList>
+
+                {/* Events List Tab */}
+                <TabsContent value="events" className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Events</h3>
+                    <Dialog open={isCreateEventOpen} onOpenChange={setIsCreateEventOpen}>
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Event
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Create New Event</DialogTitle>
+                          <DialogDescription>
+                            Add a new event that can be used as a category in orders
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="event-name">Event Name *</Label>
+                            <Input
+                              id="event-name"
+                              value={eventForm.name}
+                              onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+                              placeholder="Enter event name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="event-location">Location *</Label>
+                            <Input
+                              id="event-location"
+                              value={eventForm.location}
+                              onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+                              placeholder="Enter event location"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="event-date">Event Date *</Label>
+                            <Input
+                              id="event-date"
+                              type="date"
+                              value={eventForm.event_date}
+                              onChange={(e) => setEventForm({ ...eventForm, event_date: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setIsCreateEventOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleCreateEvent}>
+                            Create Event
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+
+                  {isEventsLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                    </div>
+                  ) : (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Event Name</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Created By</TableHead>
+                            <TableHead>Created At</TableHead>
+                            <TableHead className="w-[100px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {events.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                No events found. Create your first event to get started.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            events.map((event) => (
+                              <TableRow key={event.id}>
+                                <TableCell className="font-medium">{event.name}</TableCell>
+                                <TableCell className="flex items-center gap-1">
+                                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                                  {event.location}
+                                </TableCell>
+                                <TableCell>
+                                  {formatDateWithUserSettings(new Date(event.event_date), settings?.date_format)}
+                                </TableCell>
+                                <TableCell>
+                                  {event.profiles?.first_name && event.profiles?.last_name 
+                                    ? `${event.profiles.first_name} ${event.profiles.last_name}`
+                                    : event.profiles?.email || 'Unknown'
+                                  }
+                                </TableCell>
+                                <TableCell>
+                                  {formatDateWithUserSettings(new Date(event.created_at), settings?.date_format)}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleViewEvent(event)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteEvent(event.id)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Event Logs Tab */}
+                <TabsContent value="logs" className="space-y-4">
+                  <h3 className="text-lg font-medium">Event Activity Log</h3>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Event</TableHead>
+                          <TableHead>Action</TableHead>
+                          <TableHead>Performed By</TableHead>
+                          <TableHead>Date & Time</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {eventLogs.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                              No event activity found.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          eventLogs.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell className="font-medium">
+                                {log.events?.name || 'Deleted Event'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={
+                                  log.action === 'created' ? 'default' :
+                                  log.action === 'updated' ? 'secondary' :
+                                  'destructive'
+                                }>
+                                  {log.action}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {log.profiles?.first_name && log.profiles?.last_name 
+                                  ? `${log.profiles.first_name} ${log.profiles.last_name}`
+                                  : log.profiles?.email || 'Unknown'
+                                }
+                              </TableCell>
+                              <TableCell className="flex items-center gap-1">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                {formatDateWithUserSettings(new Date(log.performed_at), settings?.date_format)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Event Details Dialog */}
+      <Dialog open={isEventDetailsOpen} onOpenChange={setIsEventDetailsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Event Details</DialogTitle>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-4">
+              <div className="grid gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Event Name</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedEvent.name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Location</Label>
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    {selectedEvent.location}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Event Date</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatDateWithUserSettings(new Date(selectedEvent.event_date), settings?.date_format)}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Created By</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {selectedEvent.profiles?.first_name && selectedEvent.profiles?.last_name 
+                      ? `${selectedEvent.profiles.first_name} ${selectedEvent.profiles.last_name}`
+                      : selectedEvent.profiles?.email || 'Unknown'
+                    }
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Created At</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatDateWithUserSettings(new Date(selectedEvent.created_at), settings?.date_format)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEventDetailsOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

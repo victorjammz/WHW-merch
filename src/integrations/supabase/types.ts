@@ -77,6 +77,44 @@ export type Database = {
         }
         Relationships: []
       }
+      event_logs: {
+        Row: {
+          action: string
+          event_id: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          performed_at: string
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          event_id: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_at?: string
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          event_id?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_at?: string
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_orders: {
         Row: {
           client_name: string
@@ -112,6 +150,36 @@ export type Database = {
           notes?: string | null
           status?: string
           total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string
+          event_date: string
+          id: string
+          location: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          event_date: string
+          id?: string
+          location: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          event_date?: string
+          id?: string
+          location?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
