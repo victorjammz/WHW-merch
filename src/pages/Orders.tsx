@@ -103,6 +103,7 @@ const formatItemsDisplay = (items: any[]) => {
   }
   return `${items.length} items`;
 };
+
 const Orders = () => {
   const [orders, setOrders] = useState(initialOrders);
   const [searchTerm, setSearchTerm] = useState("");
@@ -160,15 +161,9 @@ const Orders = () => {
     color: "",
     quantity: 1
   });
-  const {
-    toast
-  } = useToast();
-  const {
-    formatPrice
-  } = useCurrency();
-  const {
-    settings
-  } = useUserSettings();
+  const { toast } = useToast();
+  const { formatPrice } = useCurrency();
+  const { settings } = useUserSettings();
 
   // Events state
   const [events, setEvents] = useState<any[]>([]);
@@ -200,23 +195,19 @@ const Orders = () => {
           setDefaultEventExpiry(expiry);
           setNewOrderForm(prev => ({ ...prev, event_id: event.id }));
         } catch (error) {
-          // Clear invalid data
           localStorage.removeItem('defaultEvent');
           localStorage.removeItem('defaultEventExpiry');
         }
       } else {
-        // Expired, clear it
         localStorage.removeItem('defaultEvent');
         localStorage.removeItem('defaultEventExpiry');
       }
     }
   }, []);
+
   const fetchInventoryItems = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('inventory').select('id, name, sku, price, quantity, category, size, color').gt('quantity', 0);
+      const { data, error } = await supabase.from('inventory').select('id, name, sku, price, quantity, category, size, color').gt('quantity', 0);
       if (error) throw error;
       setInventoryItems(data || []);
     } catch (error) {
@@ -228,12 +219,10 @@ const Orders = () => {
       });
     }
   };
+
   const fetchCategories = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('categories').select('id, name');
+      const { data, error } = await supabase.from('categories').select('id, name');
       if (error) throw error;
       setCategories(data || []);
     } catch (error) {
@@ -263,13 +252,13 @@ const Orders = () => {
         variant: "destructive"
       });
     }
+  };
 
   // Filter products when category changes
   useEffect(() => {
     if (currentItem.category) {
       const filtered = inventoryItems.filter(item => item.category === currentItem.category);
       setFilteredProducts(filtered);
-      // Reset product, size, color when category changes
       setCurrentItem(prev => ({
         ...prev,
         product: "",
@@ -286,13 +275,11 @@ const Orders = () => {
     if (currentItem.product) {
       const product = inventoryItems.find(item => item.name === currentItem.product);
       if (product) {
-        // Get all variants of this product to find available sizes and colors
         const variants = inventoryItems.filter(item => item.name === currentItem.product);
         const sizes = [...new Set(variants.map(v => v.size).filter(Boolean))];
         const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
         setProductSizes(sizes);
         setProductColors(colors);
-        // Reset size and color when product changes
         setCurrentItem(prev => ({
           ...prev,
           size: "",
@@ -301,14 +288,17 @@ const Orders = () => {
       }
     }
   }, [currentItem.product, inventoryItems]);
+
   const generateOrderId = () => {
     const nextNumber = orders.length + 1;
     return `EO-${String(nextNumber).padStart(3, '0')}`;
   };
+
   const handleNewOrder = () => {
     setCurrentStep(1);
     setIsNewOrderOpen(true);
   };
+
   const handleCloseDialog = () => {
     setIsNewOrderOpen(false);
     setCurrentStep(1);
@@ -333,19 +323,21 @@ const Orders = () => {
       quantity: 1
     });
   };
+
   const validateStep1 = () => {
     return newOrderForm.name && newOrderForm.email && newOrderForm.phone && newOrderForm.address && newOrderForm.city && newOrderForm.postcode && newOrderForm.event_id && orderItems.length > 0;
   };
+
   const validateCurrentItem = () => {
     const product = inventoryItems.find(item => item.name === currentItem.product);
     if (!product) return false;
 
-    // Check if size is required (product has variants with sizes)
     const variants = inventoryItems.filter(item => item.name === currentItem.product);
     const hasSizes = variants.some(v => v.size);
     const hasColors = variants.some(v => v.color);
     return currentItem.category && currentItem.product && currentItem.quantity > 0 && (!hasSizes || currentItem.size) && (!hasColors || currentItem.color);
   };
+
   const addItemToOrder = () => {
     if (!validateCurrentItem()) {
       toast({
@@ -384,15 +376,18 @@ const Orders = () => {
       description: `${product.name} added to order`
     });
   };
+
   const removeItemFromOrder = (index: number) => {
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
-  const calculateOrderTotal = (items?: any[]) => {
+
+  const calculateOrderTotalItems = (items?: any[]) => {
     if (items) {
       return items.reduce((total, item) => total + item.quantity * item.price, 0);
     }
     return orderItems.reduce((total, item) => total + item.quantity * item.price, 0);
   };
+
   const handleNextStep = () => {
     if (!validateStep1()) {
       toast({
@@ -404,9 +399,11 @@ const Orders = () => {
     }
     setCurrentStep(2);
   };
+
   const handlePrevStep = () => {
     setCurrentStep(1);
   };
+
   const handleCreateOrder = () => {
     if (!validateStep1()) {
       toast({
@@ -441,6 +438,27 @@ const Orders = () => {
       description: `Order ${newOrder.id} has been created successfully`
     });
   };
+
+  const handleSetDefaultEvent = (event: any) => {
+    const expiry = Date.now() + (48 * 60 * 60 * 1000); // 48 hours from now
+    localStorage.setItem('defaultEvent', JSON.stringify(event));
+    localStorage.setItem('defaultEventExpiry', expiry.toString());
+    setDefaultEvent(event);
+    setDefaultEventExpiry(expiry);
+    setNewOrderForm(prev => ({ ...prev, event_id: event.id }));
+    setIsEventsOpen(false);
+    
+    toast({
+      title: "Default Event Set",
+      description: `${event.name} is now your default event for 48 hours`
+    });
+  };
+
+  const filteredEvents = events.filter(event => 
+    event.name.toLowerCase().includes(eventSearch.toLowerCase()) ||
+    event.location.toLowerCase().includes(eventSearch.toLowerCase())
+  );
+
   const handleExport = () => {
     const csvContent = filteredOrders.map(order => `${order.id},${order.name},${order.email},${order.phone},${order.address},${order.postcode},"${formatItemsDisplay(order.items)}",${order.status},${order.payment},${order.date}`).join('\n');
     const blob = new Blob([`Order ID,Name,Email,Phone,Address,Postcode,Items,Status,Payment,Date\n${csvContent}`], {
@@ -457,6 +475,7 @@ const Orders = () => {
       description: "Orders exported to CSV file"
     });
   };
+
   const handleViewOrder = (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
@@ -464,11 +483,11 @@ const Orders = () => {
       setIsViewOrderOpen(true);
     }
   };
+
   const handleEditOrder = (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
       setSelectedOrder(order);
-      // Parse the items back into category, product, size, color if possible
       const itemsArray = Array.isArray(order.items) ? order.items : [{
         name: order.items,
         quantity: 1,
@@ -485,7 +504,6 @@ const Orders = () => {
         country: "",
         postcode: order.postcode,
         category: "",
-        // We'll need to determine this from the product
         product: itemsParts[0] || "",
         size: itemsParts[1] || "",
         color: itemsParts[2] || "",
@@ -496,6 +514,7 @@ const Orders = () => {
       fetchInventoryItems();
     }
   };
+
   const handleUpdateOrder = () => {
     if (!editOrderForm.name || !editOrderForm.email || !editOrderForm.phone || !editOrderForm.address || !editOrderForm.city || !editOrderForm.postcode || !editOrderForm.category || !editOrderForm.product) {
       toast({
@@ -506,21 +525,19 @@ const Orders = () => {
       return;
     }
 
-    // Combine the selections into an items string
     const itemsDescription = `${editOrderForm.product}${editOrderForm.size ? ` - ${editOrderForm.size}` : ''}${editOrderForm.color ? ` - ${editOrderForm.color}` : ''}`;
     const updatedOrders = orders.map(order => order.id === selectedOrder.id ? {
       ...order,
-        name: editOrderForm.name,
-        email: editOrderForm.email,
-        phone: editOrderForm.phone,
-        address: `${editOrderForm.address}, ${editOrderForm.city}, ${editOrderForm.country}`,
-        postcode: editOrderForm.postcode,
+      name: editOrderForm.name,
+      email: editOrderForm.email,
+      phone: editOrderForm.phone,
+      address: `${editOrderForm.address}, ${editOrderForm.city}, ${editOrderForm.country}`,
+      postcode: editOrderForm.postcode,
       items: [{
         name: itemsDescription,
         quantity: 1,
         price: 0
       }],
-      // Default structure for updated orders
       status: editOrderForm.status,
       payment: editOrderForm.payment
     } : order);
@@ -547,15 +564,18 @@ const Orders = () => {
       description: `Order ${selectedOrder.id} has been updated successfully`
     });
   };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) || order.name.toLowerCase().includes(searchTerm.toLowerCase()) || order.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o => o.status === "pending").length;
   const confirmedOrders = orders.filter(o => o.status === "confirmed").length;
   const inProgressOrders = orders.filter(o => o.status === "in_progress").length;
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
@@ -572,6 +592,7 @@ const Orders = () => {
         return null;
     }
   };
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "pending":
@@ -588,7 +609,9 @@ const Orders = () => {
         return "secondary";
     }
   };
-  return <div className="space-y-6 p-6">
+
+  return (
+    <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
@@ -605,328 +628,387 @@ const Orders = () => {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Order - Step {currentStep} of 2</DialogTitle>
-              <DialogDescription>
-                {currentStep === 1 ? "Enter customer details and select items for the order." : "Set the order status and payment information."}
-              </DialogDescription>
-            </DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Create New Order - Step {currentStep} of 2</DialogTitle>
+                <DialogDescription>
+                  {currentStep === 1 ? "Enter customer details and select items for the order." : "Set the order status and payment information."}
+                </DialogDescription>
+              </DialogHeader>
 
-            {currentStep === 1 && <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Full Name *
-                  </Label>
-                  <Input id="name" value={newOrderForm.name} onChange={e => setNewOrderForm({
-                  ...newOrderForm,
-                  name: e.target.value
-                })} className="col-span-3" placeholder="Customer full name" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email *
-                  </Label>
-                  <Input id="email" type="email" value={newOrderForm.email} onChange={e => setNewOrderForm({
-                  ...newOrderForm,
-                  email: e.target.value
-                })} className="col-span-3" placeholder="customer@email.com" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Phone *
-                  </Label>
-                  <Input id="phone" value={newOrderForm.phone} onChange={e => setNewOrderForm({
-                  ...newOrderForm,
-                  phone: e.target.value
-                })} className="col-span-3" placeholder="+1 (555) 123-4567" />
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="col-span-4">
-                    <PostcodeAutocomplete
-                      onAddressComplete={(address) => {
-                        setNewOrderForm({
-                          ...newOrderForm,
-                          address: address.address,
-                          city: address.city,
-                          country: address.country,
-                          postcode: address.postcode
-                        });
-                      }}
+              {currentStep === 1 && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Full Name *
+                    </Label>
+                    <Input 
+                      id="name" 
+                      value={newOrderForm.name} 
+                      onChange={e => setNewOrderForm({
+                        ...newOrderForm,
+                        name: e.target.value
+                      })} 
+                      className="col-span-3" 
+                      placeholder="Customer full name" 
                     />
                   </div>
-                </div>
-                
-                {/* Event Selection */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="event" className="text-right">
-                    Event *
-                  </Label>
-                  <div className="col-span-3 relative">
-                    <Popover open={isEventsOpen} onOpenChange={setIsEventsOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={isEventsOpen}
-                          className="w-full justify-between"
-                        >
-                          {newOrderForm.event_id ? 
-                            events.find(event => event.id === newOrderForm.event_id)?.name || "Select event..."
-                            : "Select event..."
-                          }
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0">
-                        <Command>
-                          <CommandInput 
-                            placeholder="Search events..." 
-                            value={eventSearch}
-                            onValueChange={setEventSearch}
-                          />
-                          <CommandList>
-                            <CommandEmpty>No events found.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredEvents.map((event) => (
-                                <CommandItem
-                                  key={event.id}
-                                  value={event.id}
-                                  onSelect={() => {
-                                    setNewOrderForm(prev => ({ ...prev, event_id: event.id }));
-                                    setIsEventsOpen(false);
-                                  }}
-                                  className="flex items-center justify-between"
-                                >
-                                  <div className="flex-1">
-                                    <div className="font-medium">{event.name}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {event.location} • {new Date(event.event_date).toLocaleDateString()}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email *
+                    </Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={newOrderForm.email} 
+                      onChange={e => setNewOrderForm({
+                        ...newOrderForm,
+                        email: e.target.value
+                      })} 
+                      className="col-span-3" 
+                      placeholder="customer@email.com" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone *
+                    </Label>
+                    <Input 
+                      id="phone" 
+                      value={newOrderForm.phone} 
+                      onChange={e => setNewOrderForm({
+                        ...newOrderForm,
+                        phone: e.target.value
+                      })} 
+                      className="col-span-3" 
+                      placeholder="+44 7911 123456" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="col-span-4">
+                      <PostcodeAutocomplete
+                        onAddressComplete={(address) => {
+                          setNewOrderForm({
+                            ...newOrderForm,
+                            address: address.address,
+                            city: address.city,
+                            country: address.country,
+                            postcode: address.postcode
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Event Selection */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="event" className="text-right">
+                      Event *
+                    </Label>
+                    <div className="col-span-3 relative">
+                      <Popover open={isEventsOpen} onOpenChange={setIsEventsOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isEventsOpen}
+                            className="w-full justify-between"
+                          >
+                            {newOrderForm.event_id ? 
+                              events.find(event => event.id === newOrderForm.event_id)?.name || "Select event..."
+                              : "Select event..."
+                            }
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Search events..." 
+                              value={eventSearch}
+                              onValueChange={setEventSearch}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No events found.</CommandEmpty>
+                              <CommandGroup>
+                                {filteredEvents.map((event) => (
+                                  <CommandItem
+                                    key={event.id}
+                                    value={event.id}
+                                    onSelect={() => {
+                                      setNewOrderForm(prev => ({ ...prev, event_id: event.id }));
+                                      setIsEventsOpen(false);
+                                    }}
+                                    className="flex items-center justify-between"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="font-medium">{event.name}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {event.location} • {new Date(event.event_date).toLocaleDateString()}
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {defaultEvent?.id === event.id && (
-                                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                                    )}
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSetDefaultEvent(event);
-                                      }}
-                                      className="h-6 px-2 text-xs"
-                                    >
-                                      Set Default
-                                    </Button>
-                                  </div>
-                                  <Check
-                                    className={`ml-2 h-4 w-4 ${
-                                      newOrderForm.event_id === event.id ? "opacity-100" : "opacity-0"
-                                    }`}
-                                  />
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {defaultEvent && defaultEventExpiry && Date.now() < defaultEventExpiry && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Default: {defaultEvent.name} (expires in {Math.round((defaultEventExpiry - Date.now()) / (1000 * 60 * 60))}h)
-                      </p>
+                                    <div className="flex items-center gap-2">
+                                      {defaultEvent?.id === event.id && (
+                                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSetDefaultEvent(event);
+                                        }}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        Set Default
+                                      </Button>
+                                    </div>
+                                    <Check
+                                      className={`ml-2 h-4 w-4 ${
+                                        newOrderForm.event_id === event.id ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {defaultEvent && defaultEventExpiry && Date.now() < defaultEventExpiry && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Default: {defaultEvent.name} (expires in {Math.round((defaultEventExpiry - Date.now()) / (1000 * 60 * 60))}h)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Add Items Section */}
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h3 className="font-semibold">Add Items to Order</h3>
+                    
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="category" className="text-right">
+                        Category *
+                      </Label>
+                      <Select value={currentItem.category} onValueChange={value => setCurrentItem({
+                        ...currentItem,
+                        category: value
+                      })}>
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border z-50">
+                          {categories.map(category => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {currentItem.category && (
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="product" className="text-right">
+                          Product *
+                        </Label>
+                        <Select value={currentItem.product} onValueChange={value => setCurrentItem({
+                          ...currentItem,
+                          product: value
+                        })}>
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select a product" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border z-50">
+                            {filteredProducts.map(product => (
+                              <SelectItem key={product.id} value={product.name}>
+                                {product.name} - {formatPrice(product.price)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {currentItem.product && productSizes.length > 0 && (
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="size" className="text-right">
+                          Size *
+                        </Label>
+                        <Select value={currentItem.size} onValueChange={value => setCurrentItem({
+                          ...currentItem,
+                          size: value
+                        })}>
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select a size" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border z-50">
+                            {productSizes.map(size => (
+                              <SelectItem key={size} value={size}>
+                                {size}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {currentItem.product && productColors.length > 0 && (
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="color" className="text-right">
+                          Color *
+                        </Label>
+                        <Select value={currentItem.color} onValueChange={value => setCurrentItem({
+                          ...currentItem,
+                          color: value
+                        })}>
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select a color" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border z-50">
+                            {productColors.map(color => (
+                              <SelectItem key={color} value={color}>
+                                {color}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {currentItem.product && (
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="quantity" className="text-right">
+                          Quantity *
+                        </Label>
+                        <Input 
+                          id="quantity" 
+                          type="number" 
+                          min="1" 
+                          value={currentItem.quantity} 
+                          onChange={e => setCurrentItem({
+                            ...currentItem,
+                            quantity: parseInt(e.target.value) || 1
+                          })} 
+                          className="col-span-3" 
+                        />
+                      </div>
+                    )}
+
+                    {currentItem.product && (
+                      <div className="flex justify-end">
+                        <Button onClick={addItemToOrder} disabled={!validateCurrentItem()}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Item
+                        </Button>
+                      </div>
                     )}
                   </div>
+
+                  {/* Order Items List */}
+                  {orderItems.length > 0 && (
+                    <div className="border rounded-lg p-4 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-semibold">Order Items</h3>
+                        <div className="text-lg font-bold">
+                          Total: {formatPrice(calculateOrderTotalItems())}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {orderItems.map((item, index) => (
+                          <div key={index} className="flex justify-between items-center bg-muted p-3 rounded">
+                            <div>
+                              <div className="font-medium">
+                                {item.product}
+                                {item.size && ` - ${item.size}`}
+                                {item.color && ` - ${item.color}`}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Qty: {item.quantity} × {formatPrice(item.price)} = {formatPrice(item.quantity * item.price)}
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => removeItemFromOrder(index)}>
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {/* Add Items Section */}
-                <div className="border rounded-lg p-4 space-y-4">
-                  <h3 className="font-semibold">Add Items to Order</h3>
-                  
+              )}
+
+              {currentStep === 2 && (
+                <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="text-right">
-                      Category *
+                    <Label htmlFor="status" className="text-right">
+                      Status *
                     </Label>
-                    <Select value={currentItem.category} onValueChange={value => setCurrentItem({
-                    ...currentItem,
-                    category: value
-                  })}>
+                    <Select value={newOrderForm.status} onValueChange={value => setNewOrderForm({
+                      ...newOrderForm,
+                      status: value
+                    })}>
                       <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        {categories.map(category => <SelectItem key={category.id} value={category.name}>
-                            {category.name}
-                          </SelectItem>)}
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  {currentItem.category && <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="product" className="text-right">
-                        Product *
-                      </Label>
-                      <Select value={currentItem.product} onValueChange={value => setCurrentItem({
-                    ...currentItem,
-                    product: value
-                  })}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select a product" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border z-50">
-                          {filteredProducts.map(product => <SelectItem key={product.id} value={product.name}>
-                              {product.name} - {formatPrice(product.price)}
-                            </SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="payment" className="text-right">
+                      Payment *
+                    </Label>
+                    <Select value={newOrderForm.payment} onValueChange={value => setNewOrderForm({
+                      ...newOrderForm,
+                      payment: value
+                    })}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="refunded">Refunded</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
 
-                  {currentItem.product && productSizes.length > 0 && <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="size" className="text-right">
-                        Size *
-                      </Label>
-                      <Select value={currentItem.size} onValueChange={value => setCurrentItem({
-                    ...currentItem,
-                    size: value
-                  })}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select a size" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border z-50">
-                          {productSizes.map(size => <SelectItem key={size} value={size}>
-                              {size}
-                            </SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>}
-
-                  {currentItem.product && productColors.length > 0 && <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="color" className="text-right">
-                        Color *
-                      </Label>
-                      <Select value={currentItem.color} onValueChange={value => setCurrentItem({
-                    ...currentItem,
-                    color: value
-                  })}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select a color" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border z-50">
-                          {productColors.map(color => <SelectItem key={color} value={color}>
-                              {color}
-                            </SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>}
-
-                  {currentItem.product && <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="quantity" className="text-right">
-                        Quantity *
-                      </Label>
-                      <Input id="quantity" type="number" min="1" value={currentItem.quantity} onChange={e => setCurrentItem({
-                    ...currentItem,
-                    quantity: parseInt(e.target.value) || 1
-                  })} className="col-span-3" />
-                    </div>}
-
-                  {currentItem.product && <div className="flex justify-end">
-                      <Button onClick={addItemToOrder} disabled={!validateCurrentItem()}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Item
+              <DialogFooter>
+                <div className="flex justify-between w-full">
+                  <div>
+                    {currentStep === 2 && (
+                      <Button variant="outline" onClick={handlePrevStep}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Previous
                       </Button>
-                    </div>}
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleCloseDialog}>
+                      Cancel
+                    </Button>
+                    {currentStep === 1 ? (
+                      <Button onClick={handleNextStep}>
+                        Next
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button onClick={handleCreateOrder}>
+                        Create Order
+                      </Button>
+                    )}
+                  </div>
                 </div>
-
-                {/* Order Items List */}
-                {orderItems.length > 0 && <div className="border rounded-lg p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-semibold">Order Items</h3>
-                      <div className="text-lg font-bold">
-                        Total: {formatPrice(calculateOrderTotal())}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      {orderItems.map((item, index) => <div key={index} className="flex justify-between items-center bg-muted p-3 rounded">
-                          <div>
-                            <div className="font-medium">
-                              {item.product}
-                              {item.size && ` - ${item.size}`}
-                              {item.color && ` - ${item.color}`}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Qty: {item.quantity} × {formatPrice(item.price)} = {formatPrice(item.quantity * item.price)}
-                            </div>
-                          </div>
-                          <Button variant="outline" size="sm" onClick={() => removeItemFromOrder(index)}>
-                            Remove
-                          </Button>
-                        </div>)}
-                    </div>
-                  </div>}
-              </div>}
-
-            {currentStep === 2 && <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Status *
-                  </Label>
-                  <Select value={newOrderForm.status} onValueChange={value => setNewOrderForm({
-                  ...newOrderForm,
-                  status: value
-                })}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="payment" className="text-right">
-                    Payment *
-                  </Label>
-                  <Select value={newOrderForm.payment} onValueChange={value => setNewOrderForm({
-                  ...newOrderForm,
-                  payment: value
-                })}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="refunded">Refunded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>}
-
-            <DialogFooter>
-              <div className="flex justify-between w-full">
-                <div>
-                  {currentStep === 2 && <Button variant="outline" onClick={handlePrevStep}>
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Previous
-                    </Button>}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleCloseDialog}>
-                    Cancel
-                  </Button>
-                  {currentStep === 1 ? <Button onClick={handleNextStep}>
-                      Next
-                       <ArrowRight className="ml-2 h-4 w-4" />
-                     </Button> : <Button onClick={handleCreateOrder}>
-                       Create Order
-                    </Button>}
-                </div>
-              </div>
-            </DialogFooter>
-          </DialogContent>
+              </DialogFooter>
+            </DialogContent>
           </Dialog>
         </div>
       </div>
@@ -941,31 +1023,31 @@ const Orders = () => {
           <CardContent>
             <div className="text-2xl font-bold">{totalOrders}</div>
             <p className="text-xs text-muted-foreground">
-              All orders
+              +20.1% from last month
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{pendingOrders}</div>
             <p className="text-xs text-muted-foreground">
-              Need attention
+              Awaiting confirmation
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+            <CardTitle className="text-sm font-medium">Confirmed Orders</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{confirmedOrders}</div>
             <p className="text-xs text-muted-foreground">
-              Confirmed bookings
+              Ready to fulfill
             </p>
           </CardContent>
         </Card>
@@ -983,7 +1065,7 @@ const Orders = () => {
         </Card>
       </div>
 
-      {/* Event Orders Table */}
+      {/* Orders Table */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -993,25 +1075,8 @@ const Orders = () => {
                 View and manage all orders and special requests
               </CardDescription>
             </div>
-            <div className="flex gap-4">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search orders..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8 w-64" />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" onClick={handleExport}>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
@@ -1019,82 +1084,98 @@ const Orders = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex items-center space-x-2 mb-4">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search orders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Postcode</TableHead>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Contact</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrders.map(order => <TableRow key={order.id}>
+              {filteredOrders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <User className="h-4 w-4 text-muted-foreground" />
-                      <div className="font-medium">{order.name}</div>
+                      <span>{order.name}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <div className="text-sm">{order.email}</div>
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{order.email}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{order.phone}</span>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <div className="text-sm">{order.phone}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <div className="text-sm max-w-[150px] truncate">{order.address}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{order.postcode}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm max-w-[200px] truncate">{formatItemsDisplay(order.items)}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-semibold">{formatPrice(calculateOrderTotal(order.items))}</div>
-                  </TableCell>
+                  <TableCell>{formatItemsDisplay(order.items)}</TableCell>
+                  <TableCell>{formatPrice(calculateOrderTotal(order.items))}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">
                       {getStatusIcon(order.status)}
-                      {order.status.replace('_', ' ')}
+                      {order.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={order.payment === "paid" ? "default" : order.payment === "pending" ? "secondary" : "destructive"}>
+                    <Badge variant={order.payment === "paid" ? "default" : "secondary"}>
                       {order.payment}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{formatDateWithUserSettings(order.date, settings?.date_format)}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleViewOrder(order.id)}>
-                        View
+                  <TableCell>{order.date}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewOrder(order.id)}
+                      >
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)}>
-                        Edit
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditOrder(order.id)}
+                      >
+                        <Edit className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>)}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -1112,67 +1193,77 @@ const Orders = () => {
               View complete order information
             </DialogDescription>
           </DialogHeader>
-          {selectedOrder && <div className="grid gap-4 py-4">
+          {selectedOrder && (
+            <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Customer Name</Label>
-                  <p className="text-sm font-medium">{selectedOrder.name}</p>
+                  <Label className="text-sm font-medium">Customer Name</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedOrder.name}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Order Date</Label>
-                  <p className="text-sm">{formatDateWithUserSettings(selectedOrder.date, settings?.date_format)}</p>
+                  <Label className="text-sm font-medium">Order ID</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedOrder.id}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Email</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedOrder.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Phone</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedOrder.phone}</p>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-sm font-medium">Address</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedOrder.address}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Postcode</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedOrder.postcode}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Date</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedOrder.date}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
-                  <p className="text-sm">{selectedOrder.email}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
-                  <p className="text-sm">{selectedOrder.phone}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Address</Label>
-                  <p className="text-sm">{selectedOrder.address}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Postcode</Label>
-                  <p className="text-sm">{selectedOrder.postcode}</p>
-                </div>
-              </div>
+              
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Items</Label>
-                <div className="space-y-2">
-                  {Array.isArray(selectedOrder.items) ? selectedOrder.items.map((item: any, index: number) => <div key={index} className="text-sm border rounded p-2">
-                        <div className="font-medium">{item.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Quantity: {item.quantity} × {formatPrice(item.price)} = {formatPrice(item.quantity * item.price)}
-                        </div>
-                      </div>) : <p className="text-sm">{selectedOrder.items}</p>}
-                  {Array.isArray(selectedOrder.items) && <div className="text-sm font-semibold border-t pt-2">
-                      Total: {formatPrice(calculateOrderTotal(selectedOrder.items))}
-                    </div>}
+                <Label className="text-sm font-medium">Items</Label>
+                <div className="mt-2 space-y-2">
+                  {Array.isArray(selectedOrder.items) ? selectedOrder.items.map((item: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
+                      <span className="text-sm">{item.name}</span>
+                      <span className="text-sm font-medium">
+                        {item.quantity}x {formatPrice(item.price)}
+                      </span>
+                    </div>
+                  )) : (
+                    <div className="p-2 bg-muted rounded">
+                      <span className="text-sm">{selectedOrder.items}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 pt-2 border-t flex justify-between items-center">
+                  <span className="font-medium">Total:</span>
+                  <span className="font-bold">{formatPrice(calculateOrderTotal(selectedOrder.items))}</span>
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                  <Badge variant={getStatusVariant(selectedOrder.status)} className="flex items-center gap-1 w-fit">
-                    {getStatusIcon(selectedOrder.status)}
-                    {selectedOrder.status.replace('_', ' ')}
+                  <Label className="text-sm font-medium">Status</Label>
+                  <Badge variant={getStatusVariant(selectedOrder.status)} className="mt-1">
+                    {selectedOrder.status}
                   </Badge>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Payment</Label>
-                  <Badge variant={selectedOrder.payment === "paid" ? "default" : selectedOrder.payment === "pending" ? "secondary" : "destructive"}>
+                  <Label className="text-sm font-medium">Payment</Label>
+                  <Badge variant={selectedOrder.payment === "paid" ? "default" : "secondary"} className="mt-1">
                     {selectedOrder.payment}
                   </Badge>
                 </div>
               </div>
-            </div>}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
               Close
@@ -1196,30 +1287,46 @@ const Orders = () => {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-name" className="text-right">
-                Full Name *
+                Name *
               </Label>
-              <Input id="edit-name" value={editOrderForm.name} onChange={e => setEditOrderForm({
-              ...editOrderForm,
-              name: e.target.value
-            })} className="col-span-3" placeholder="Customer full name" />
+              <Input 
+                id="edit-name" 
+                value={editOrderForm.name} 
+                onChange={e => setEditOrderForm({
+                  ...editOrderForm,
+                  name: e.target.value
+                })} 
+                className="col-span-3" 
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-email" className="text-right">
                 Email *
               </Label>
-              <Input id="edit-email" type="email" value={editOrderForm.email} onChange={e => setEditOrderForm({
-              ...editOrderForm,
-              email: e.target.value
-            })} className="col-span-3" placeholder="customer@email.com" />
+              <Input 
+                id="edit-email" 
+                type="email" 
+                value={editOrderForm.email} 
+                onChange={e => setEditOrderForm({
+                  ...editOrderForm,
+                  email: e.target.value
+                })} 
+                className="col-span-3" 
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-phone" className="text-right">
                 Phone *
               </Label>
-              <Input id="edit-phone" value={editOrderForm.phone} onChange={e => setEditOrderForm({
-              ...editOrderForm,
-              phone: e.target.value
-            })} className="col-span-3" placeholder="+1 (555) 123-4567" />
+              <Input 
+                id="edit-phone" 
+                value={editOrderForm.phone} 
+                onChange={e => setEditOrderForm({
+                  ...editOrderForm,
+                  phone: e.target.value
+                })} 
+                className="col-span-3" 
+              />
             </div>
             <div className="grid grid-cols-1 gap-4">
               <div className="col-span-4">
@@ -1241,84 +1348,53 @@ const Orders = () => {
                 Category *
               </Label>
               <Select value={editOrderForm.category} onValueChange={value => setEditOrderForm({
-              ...editOrderForm,
-              category: value
-            })}>
+                ...editOrderForm,
+                category: value
+              })}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border z-50">
-                  {categories.map(category => <SelectItem key={category.id} value={category.name}>
+                  {categories.map(category => (
+                    <SelectItem key={category.id} value={category.name}>
                       {category.name}
-                    </SelectItem>)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             
-            {editOrderForm.category && <div className="grid grid-cols-4 items-center gap-4">
+            {editOrderForm.category && (
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-product" className="text-right">
                   Product *
                 </Label>
                 <Select value={editOrderForm.product} onValueChange={value => setEditOrderForm({
-              ...editOrderForm,
-              product: value
-            })}>
+                  ...editOrderForm,
+                  product: value
+                })}>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select a product" />
                   </SelectTrigger>
                   <SelectContent className="bg-background border z-50">
-                    {inventoryItems.filter(item => item.category === editOrderForm.category).map(product => <SelectItem key={product.id} value={product.name}>
+                    {filteredProducts.map(product => (
+                      <SelectItem key={product.id} value={product.name}>
                         {product.name} - {formatPrice(product.price)}
-                      </SelectItem>)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>}
+              </div>
+            )}
 
-            {editOrderForm.product && <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-size" className="text-right">
-                  Size
-                </Label>
-                <Select value={editOrderForm.size} onValueChange={value => setEditOrderForm({
-              ...editOrderForm,
-              size: value
-            })}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a size (optional)" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border z-50">
-                    {[...new Set(inventoryItems.filter(item => item.name === editOrderForm.product).map(v => v.size).filter(Boolean))].map(size => <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>}
-
-            {editOrderForm.product && <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-color" className="text-right">
-                  Color
-                </Label>
-                <Select value={editOrderForm.color} onValueChange={value => setEditOrderForm({
-              ...editOrderForm,
-              color: value
-            })}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a color (optional)" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border z-50">
-                    {[...new Set(inventoryItems.filter(item => item.name === editOrderForm.product).map(v => v.color).filter(Boolean))].map(color => <SelectItem key={color} value={color}>
-                        {color}
-                      </SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-status" className="text-right">
                 Status *
               </Label>
               <Select value={editOrderForm.status} onValueChange={value => setEditOrderForm({
-              ...editOrderForm,
-              status: value
-            })}>
+                ...editOrderForm,
+                status: value
+              })}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue />
                 </SelectTrigger>
@@ -1336,9 +1412,9 @@ const Orders = () => {
                 Payment *
               </Label>
               <Select value={editOrderForm.payment} onValueChange={value => setEditOrderForm({
-              ...editOrderForm,
-              payment: value
-            })}>
+                ...editOrderForm,
+                payment: value
+              })}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue />
                 </SelectTrigger>
@@ -1363,4 +1439,5 @@ const Orders = () => {
     </div>
   );
 };
+
 export default Orders;
