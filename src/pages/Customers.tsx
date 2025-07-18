@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 
 // Mock customer data
 const mockCustomers = [
@@ -50,6 +52,7 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
   const { formatPrice } = useCurrency();
+  const { settings } = useUserSettings();
 
   const handleAddCustomer = () => {
     toast({
@@ -219,7 +222,7 @@ const Customers = () => {
                   <TableCell>
                     <div className="flex items-center text-sm">
                       <Calendar className="h-3 w-3 mr-1" />
-                      {customer.lastOrder}
+                      {formatDateWithUserSettings(customer.lastOrder, settings?.date_format)}
                     </div>
                   </TableCell>
                   <TableCell>

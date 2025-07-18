@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 
 // Mock event order data with detailed items
 const initialEventOrders = [
@@ -124,6 +126,7 @@ const EventOrders = () => {
   });
   const { toast } = useToast();
   const { formatPrice } = useCurrency();
+  const { settings } = useUserSettings();
 
   // Fetch inventory items and categories when dialog opens
   useEffect(() => {
@@ -840,7 +843,7 @@ const EventOrders = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">{order.date}</div>
+                    <div className="text-sm">{formatDateWithUserSettings(order.date, settings?.date_format)}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
@@ -880,7 +883,7 @@ const EventOrders = () => {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Order Date</Label>
-                  <p className="text-sm">{selectedOrder.date}</p>
+                  <p className="text-sm">{formatDateWithUserSettings(selectedOrder.date, settings?.date_format)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

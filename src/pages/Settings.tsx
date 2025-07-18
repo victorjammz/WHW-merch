@@ -15,6 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CURRENCY_SYMBOLS, CURRENCY_NAMES } from "@/contexts/CurrencyContext";
+import { getAvailableDateFormats } from "@/utils/dateFormatting";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -673,9 +675,14 @@ const Settings = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MM/dd/yyyy">MM/dd/yyyy</SelectItem>
-                      <SelectItem value="dd/MM/yyyy">dd/MM/yyyy</SelectItem>
-                      <SelectItem value="yyyy-MM-dd">yyyy-MM-dd</SelectItem>
+                      {getAvailableDateFormats().map((format) => (
+                        <SelectItem key={format.value} value={format.value}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{format.label}</span>
+                            <span className="text-muted-foreground ml-4">{format.example}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

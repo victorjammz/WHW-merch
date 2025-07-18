@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 
 interface BarcodeItem {
   id: string;
@@ -65,6 +67,7 @@ const Barcodes = () => {
   const [barcodes, setBarcodes] = useState<BarcodeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { settings } = useUserSettings();
 
   // Fetch barcodes from database
   useEffect(() => {
@@ -325,7 +328,7 @@ const Barcodes = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">{new Date(barcode.created_at).toLocaleDateString()}</div>
+                    <div className="text-sm">{formatDateWithUserSettings(barcode.created_at, settings?.date_format)}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

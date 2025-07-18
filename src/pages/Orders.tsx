@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 
 // Mock order data
 const initialMockOrders = [
@@ -74,6 +76,7 @@ const Orders = () => {
   });
   const { toast } = useToast();
   const { formatPrice, currency } = useCurrency();
+  const { settings } = useUserSettings();
 
   const generateOrderId = () => {
     const nextNumber = orders.length + 1;
@@ -427,7 +430,7 @@ const Orders = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">{order.date}</div>
+                    <div className="text-sm">{formatDateWithUserSettings(order.date, settings?.date_format)}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

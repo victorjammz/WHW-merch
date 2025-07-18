@@ -42,6 +42,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 
 interface UserProfile {
   id: string;
@@ -70,6 +72,7 @@ export default function UserManagement() {
   
   const { user: currentUser, isAdmin } = useAuth();
   const { toast } = useToast();
+  const { settings } = useUserSettings();
 
   useEffect(() => {
     fetchUsers();
@@ -430,7 +433,7 @@ export default function UserManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(user.created_at).toLocaleDateString()}
+                        {formatDateWithUserSettings(user.created_at, settings?.date_format)}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
