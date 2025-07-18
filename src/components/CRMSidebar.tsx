@@ -79,7 +79,7 @@ export function CRMSidebar() {
             <img 
               src="/lovable-uploads/44068426-b2cb-498d-b6d1-64702f3a3f2f.png" 
               alt="Warehouse Worship Logo" 
-              className="h-6 md:h-8 w-auto object-contain"
+              className="h-8 md:h-10 w-auto object-contain"
             />
             {!collapsed && (
               <div className="hidden">
