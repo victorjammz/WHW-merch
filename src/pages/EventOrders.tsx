@@ -62,6 +62,10 @@ const EventOrders = () => {
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [productSizes, setProductSizes] = useState<string[]>([]);
+  const [productColors, setProductColors] = useState<string[]>([]);
   const [isItemsPopoverOpen, setIsItemsPopoverOpen] = useState(false);
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
@@ -72,7 +76,10 @@ const EventOrders = () => {
     phone: "",
     address: "",
     postcode: "",
-    items: "",
+    category: "",
+    product: "",
+    size: "",
+    color: "",
     status: "pending",
     payment: "pending"
   });
@@ -82,24 +89,28 @@ const EventOrders = () => {
     phone: "",
     address: "",
     postcode: "",
-    items: "",
+    category: "",
+    product: "",
+    size: "",
+    color: "",
     status: "pending",
     payment: "pending"
   });
   const { toast } = useToast();
 
-  // Fetch inventory items when dialog opens
+  // Fetch inventory items and categories when dialog opens
   useEffect(() => {
-    if (isNewOrderOpen) {
+    if (isNewOrderOpen || isEditOrderOpen) {
       fetchInventoryItems();
+      fetchCategories();
     }
-  }, [isNewOrderOpen]);
+  }, [isNewOrderOpen, isEditOrderOpen]);
 
   const fetchInventoryItems = async () => {
     try {
       const { data, error } = await supabase
         .from('inventory')
-        .select('id, name, sku, price, quantity')
+        .select('id, name, sku, price, quantity, category, size, color')
         .gt('quantity', 0);
       
       if (error) throw error;
@@ -113,6 +124,54 @@ const EventOrders = () => {
       });
     }
   };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name');
+      
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load categories",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Filter products when category changes
+  useEffect(() => {
+    if (newOrderForm.category) {
+      const filtered = inventoryItems.filter(item => item.category === newOrderForm.category);
+      setFilteredProducts(filtered);
+      // Reset product, size, color when category changes
+      setNewOrderForm(prev => ({ ...prev, product: "", size: "", color: "" }));
+      setProductSizes([]);
+      setProductColors([]);
+    }
+  }, [newOrderForm.category, inventoryItems]);
+
+  // Update sizes and colors when product changes
+  useEffect(() => {
+    if (newOrderForm.product) {
+      const product = inventoryItems.find(item => item.name === newOrderForm.product);
+      if (product) {
+        // Get all variants of this product to find available sizes and colors
+        const variants = inventoryItems.filter(item => item.name === newOrderForm.product);
+        const sizes = [...new Set(variants.map(v => v.size).filter(Boolean))];
+        const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
+        
+        setProductSizes(sizes);
+        setProductColors(colors);
+        // Reset size and color when product changes
+        setNewOrderForm(prev => ({ ...prev, size: "", color: "" }));
+      }
+    }
+  }, [newOrderForm.product, inventoryItems]);
 
   const generateOrderId = () => {
     const nextNumber = orders.length + 1;
@@ -133,7 +192,10 @@ const EventOrders = () => {
       phone: "",
       address: "",
       postcode: "",
-      items: "",
+      category: "",
+      product: "",
+      size: "",
+      color: "",
       status: "pending",
       payment: "pending"
     });
@@ -145,7 +207,8 @@ const EventOrders = () => {
            newOrderForm.phone && 
            newOrderForm.address && 
            newOrderForm.postcode && 
-           newOrderForm.items;
+           newOrderForm.category &&
+           newOrderForm.product;
   };
 
   const handleNextStep = () => {
@@ -165,7 +228,7 @@ const EventOrders = () => {
   };
 
   const handleCreateOrder = () => {
-    if (!newOrderForm.name || !newOrderForm.email || !newOrderForm.phone || !newOrderForm.address || !newOrderForm.postcode || !newOrderForm.items) {
+    if (!newOrderForm.name || !newOrderForm.email || !newOrderForm.phone || !newOrderForm.address || !newOrderForm.postcode || !newOrderForm.category || !newOrderForm.product) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -174,6 +237,9 @@ const EventOrders = () => {
       return;
     }
 
+    // Combine the selections into an items string
+    const itemsDescription = `${newOrderForm.product}${newOrderForm.size ? ` - ${newOrderForm.size}` : ''}${newOrderForm.color ? ` - ${newOrderForm.color}` : ''}`;
+
     const newOrder = {
       id: generateOrderId(),
       name: newOrderForm.name,
@@ -181,7 +247,7 @@ const EventOrders = () => {
       phone: newOrderForm.phone,
       address: newOrderForm.address,
       postcode: newOrderForm.postcode,
-      items: newOrderForm.items,
+      items: itemsDescription,
       status: newOrderForm.status,
       payment: newOrderForm.payment,
       date: new Date().toISOString().split('T')[0]
@@ -194,7 +260,10 @@ const EventOrders = () => {
       phone: "",
       address: "",
       postcode: "",
-      items: "",
+      category: "",
+      product: "",
+      size: "",
+      color: "",
       status: "pending",
       payment: "pending"
     });
@@ -238,13 +307,18 @@ const EventOrders = () => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
       setSelectedOrder(order);
+      // Parse the items back into category, product, size, color if possible
+      const itemsParts = order.items.split(' - ');
       setEditOrderForm({
         name: order.name,
         email: order.email,
         phone: order.phone,
         address: order.address,
         postcode: order.postcode,
-        items: order.items,
+        category: "", // We'll need to determine this from the product
+        product: itemsParts[0] || "",
+        size: itemsParts[1] || "",
+        color: itemsParts[2] || "",
         status: order.status,
         payment: order.payment
       });
@@ -254,7 +328,7 @@ const EventOrders = () => {
   };
 
   const handleUpdateOrder = () => {
-    if (!editOrderForm.name || !editOrderForm.email || !editOrderForm.phone || !editOrderForm.address || !editOrderForm.postcode || !editOrderForm.items) {
+    if (!editOrderForm.name || !editOrderForm.email || !editOrderForm.phone || !editOrderForm.address || !editOrderForm.postcode || !editOrderForm.category || !editOrderForm.product) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -262,6 +336,9 @@ const EventOrders = () => {
       });
       return;
     }
+
+    // Combine the selections into an items string
+    const itemsDescription = `${editOrderForm.product}${editOrderForm.size ? ` - ${editOrderForm.size}` : ''}${editOrderForm.color ? ` - ${editOrderForm.color}` : ''}`;
 
     const updatedOrders = orders.map(order => 
       order.id === selectedOrder.id 
@@ -272,7 +349,7 @@ const EventOrders = () => {
             phone: editOrderForm.phone,
             address: editOrderForm.address,
             postcode: editOrderForm.postcode,
-            items: editOrderForm.items,
+            items: itemsDescription,
             status: editOrderForm.status,
             payment: editOrderForm.payment
           }
@@ -288,7 +365,10 @@ const EventOrders = () => {
       phone: "",
       address: "",
       postcode: "",
-      items: "",
+      category: "",
+      product: "",
+      size: "",
+      color: "",
       status: "pending",
       payment: "pending"
     });
@@ -425,56 +505,82 @@ const EventOrders = () => {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="items" className="text-right">
-                    Items *
+                  <Label htmlFor="category" className="text-right">
+                    Category *
                   </Label>
-                  <Popover open={isItemsPopoverOpen} onOpenChange={setIsItemsPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isItemsPopoverOpen}
-                        className="col-span-3 justify-between"
-                      >
-                        {newOrderForm.items || "Search and select items from inventory..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search inventory items..." />
-                        <CommandList>
-                          <CommandEmpty>No inventory items found.</CommandEmpty>
-                          <CommandGroup>
-                            {inventoryItems.map((item) => (
-                              <CommandItem
-                                key={item.id}
-                                value={item.name}
-                                onSelect={(currentValue) => {
-                                  setNewOrderForm({...newOrderForm, items: currentValue});
-                                  setIsItemsPopoverOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    newOrderForm.items === item.name ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{item.name}</span>
-                                  <span className="text-sm text-muted-foreground">
-                                    ${item.price} • Stock: {item.quantity} • SKU: {item.sku}
-                                  </span>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select value={newOrderForm.category} onValueChange={(value) => setNewOrderForm({...newOrderForm, category: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border z-50">
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                
+                {newOrderForm.category && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="product" className="text-right">
+                      Product *
+                    </Label>
+                    <Select value={newOrderForm.product} onValueChange={(value) => setNewOrderForm({...newOrderForm, product: value})}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a product" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border z-50">
+                        {filteredProducts.map((product) => (
+                          <SelectItem key={product.id} value={product.name}>
+                            {product.name} - ${product.price}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {newOrderForm.product && productSizes.length > 0 && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="size" className="text-right">
+                      Size
+                    </Label>
+                    <Select value={newOrderForm.size} onValueChange={(value) => setNewOrderForm({...newOrderForm, size: value})}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a size (optional)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border z-50">
+                        {productSizes.map((size) => (
+                          <SelectItem key={size} value={size}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {newOrderForm.product && productColors.length > 0 && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="color" className="text-right">
+                      Color
+                    </Label>
+                    <Select value={newOrderForm.color} onValueChange={(value) => setNewOrderForm({...newOrderForm, color: value})}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a color (optional)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border z-50">
+                        {productColors.map((color) => (
+                          <SelectItem key={color} value={color}>
+                            {color}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 
@@ -870,54 +976,82 @@ const EventOrders = () => {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-items" className="text-right">
-                Items *
+              <Label htmlFor="edit-category" className="text-right">
+                Category *
               </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="col-span-3 justify-between"
-                  >
-                    {editOrderForm.items || "Search and select items from inventory..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search inventory items..." />
-                    <CommandList>
-                      <CommandEmpty>No inventory items found.</CommandEmpty>
-                      <CommandGroup>
-                        {inventoryItems.map((item) => (
-                          <CommandItem
-                            key={item.id}
-                            value={item.name}
-                            onSelect={(currentValue) => {
-                              setEditOrderForm({...editOrderForm, items: currentValue});
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                editOrderForm.items === item.name ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{item.name}</span>
-                              <span className="text-sm text-muted-foreground">
-                                ${item.price} • Stock: {item.quantity} • SKU: {item.sku}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Select value={editOrderForm.category} onValueChange={(value) => setEditOrderForm({...editOrderForm, category: value})}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border z-50">
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            
+            {editOrderForm.category && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-product" className="text-right">
+                  Product *
+                </Label>
+                <Select value={editOrderForm.product} onValueChange={(value) => setEditOrderForm({...editOrderForm, product: value})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a product" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border z-50">
+                    {inventoryItems.filter(item => item.category === editOrderForm.category).map((product) => (
+                      <SelectItem key={product.id} value={product.name}>
+                        {product.name} - ${product.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {editOrderForm.product && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-size" className="text-right">
+                  Size
+                </Label>
+                <Select value={editOrderForm.size} onValueChange={(value) => setEditOrderForm({...editOrderForm, size: value})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a size (optional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border z-50">
+                    {[...new Set(inventoryItems.filter(item => item.name === editOrderForm.product).map(v => v.size).filter(Boolean))].map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {editOrderForm.product && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-color" className="text-right">
+                  Color
+                </Label>
+                <Select value={editOrderForm.color} onValueChange={(value) => setEditOrderForm({...editOrderForm, color: value})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a color (optional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border z-50">
+                    {[...new Set(inventoryItems.filter(item => item.name === editOrderForm.product).map(v => v.color).filter(Boolean))].map((color) => (
+                      <SelectItem key={color} value={color}>
+                        {color}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-status" className="text-right">
                 Status *
