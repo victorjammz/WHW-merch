@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.206931c47aa8419086d9fa21e1159db8',
+  appId: 'com.lovable.earthtonewardrobemanager',
   appName: 'earth-tone-wardrobe-manager',
   webDir: 'dist',
   server: {
