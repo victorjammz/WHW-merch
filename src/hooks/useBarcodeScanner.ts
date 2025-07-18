@@ -131,16 +131,21 @@ export const useBarcodeScanner = () => {
         console.log('Using web-based barcode scanner');
         
         return new Promise((resolve) => {
+          let scannerElement: HTMLElement | null = null;
+          let scanner: Html5QrcodeScanner | null = null;
+          
           try {
+            console.log('🌐 Setting up web scanner...');
+            
             // Clean up any existing scanner first
             const existingElement = document.getElementById('barcode-scanner');
             if (existingElement) {
-              console.log('Removing existing scanner element');
+              console.log('🧹 Removing existing scanner element');
               document.body.removeChild(existingElement);
             }
 
             // Create scanner element
-            const scannerElement = document.createElement('div');
+            scannerElement = document.createElement('div');
             scannerElement.id = 'barcode-scanner';
             scannerElement.style.position = 'fixed';
             scannerElement.style.top = '0';
@@ -148,25 +153,31 @@ export const useBarcodeScanner = () => {
             scannerElement.style.width = '100%';
             scannerElement.style.height = '100%';
             scannerElement.style.zIndex = '9999';
-            scannerElement.style.backgroundColor = 'black';
+            scannerElement.style.backgroundColor = '#000000';
+            scannerElement.style.display = 'flex';
+            scannerElement.style.flexDirection = 'column';
             document.body.appendChild(scannerElement);
-            console.log('Scanner element created and added to DOM');
+            console.log('✅ Scanner element created and added to DOM');
 
             const config = {
               fps: 10,
-              qrbox: { width: 250, height: 250 },
+              qrbox: { width: 300, height: 300 },
               aspectRatio: 1.0,
               disableFlip: false,
+              rememberLastUsedCamera: true,
+              supportedScanTypes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // Support all barcode types
               videoConstraints: {
-                facingMode: 'environment'
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
               }
             };
 
-            console.log('Creating Html5QrcodeScanner with config:', config);
-            const scanner = new Html5QrcodeScanner(
+            console.log('📷 Creating Html5QrcodeScanner with config:', config);
+            scanner = new Html5QrcodeScanner(
               'barcode-scanner',
               config,
-              false
+              false // verbose = false
             );
 
             scannerRef.current = scanner;
@@ -209,73 +220,81 @@ export const useBarcodeScanner = () => {
             
             scannerElement.appendChild(closeButton);
 
-            console.log('Starting scanner render...');
+            console.log('🎬 Starting scanner render...');
             
-            try {
-              scanner.render(
-                (decodedText) => {
-                  console.log('Web barcode scanned successfully:', decodedText);
-                  
-                  try {
-                    scanner.clear();
-                  } catch (error) {
-                    console.error('Error clearing scanner after scan:', error);
+            // Add a delay to ensure DOM is ready
+            setTimeout(() => {
+              try {
+                scanner.render(
+                  (decodedText) => {
+                    console.log('✅ Web barcode scanned successfully:', decodedText);
+                    
+                    try {
+                      if (scanner) {
+                        scanner.clear();
+                      }
+                    } catch (error) {
+                      console.error('Error clearing scanner after scan:', error);
+                    }
+                    
+                    const element = document.getElementById('barcode-scanner');
+                    if (element && element.parentNode) {
+                      document.body.removeChild(element);
+                    }
+                    setIsScanning(false);
+                    
+                    toast({
+                      title: "Barcode scanned!",
+                      description: `Found: ${decodedText}`,
+                    });
+                    
+                    resolve({
+                      hasContent: true,
+                      content: decodedText
+                    });
+                  },
+                  (errorMessage) => {
+                    // Only log real errors, not scanning attempts
+                    if (errorMessage && 
+                        !errorMessage.includes('No MultiFormat Readers') && 
+                        !errorMessage.includes('NotFoundException') &&
+                        !errorMessage.includes('No QR code found')) {
+                      console.log('⚠️ Scanner error (may be non-critical):', errorMessage);
+                    }
                   }
-                  
-                  const element = document.getElementById('barcode-scanner');
-                  if (element) {
-                    document.body.removeChild(element);
-                  }
-                  setIsScanning(false);
-                  
-                  toast({
-                    title: "Barcode scanned!",
-                    description: `Found: ${decodedText}`,
-                  });
-                  
-                  resolve({
-                    hasContent: true,
-                    content: decodedText
-                  });
-                },
-                (errorMessage) => {
-                  if (errorMessage && !errorMessage.includes('No MultiFormat Readers')) {
-                    console.log('Scanner error (non-critical):', errorMessage);
+                );
+                console.log('🚀 Scanner render initiated successfully');
+              } catch (renderError) {
+                console.error('❌ Scanner render failed:', renderError);
+                
+                if (scannerElement && scannerElement.parentNode) {
+                  document.body.removeChild(scannerElement);
+                }
+                setIsScanning(false);
+                
+                let errorMessage = "Failed to start camera. Please check camera permissions.";
+                
+                if (renderError.message) {
+                  if (renderError.message.includes('NotAllowedError')) {
+                    errorMessage = "Camera access denied. Please allow camera access in your browser settings.";
+                  } else if (renderError.message.includes('NotFoundError')) {
+                    errorMessage = "No camera found. Please ensure your device has a camera.";
+                  } else if (renderError.message.includes('NotReadableError')) {
+                    errorMessage = "Camera is busy. Please close other apps using the camera.";
+                  } else if (renderError.message.includes('OverconstrainedError')) {
+                    errorMessage = "Camera doesn't support the required settings. Try a different camera.";
                   }
                 }
-              );
-              console.log('Scanner render initiated successfully');
-            } catch (renderError) {
-              console.error('Scanner render failed:', renderError);
-              
-              const element = document.getElementById('barcode-scanner');
-              if (element) {
-                document.body.removeChild(element);
+                
+                toast({
+                  title: "Camera failed to start",
+                  description: errorMessage,
+                  variant: "destructive"
+                });
+                
+                resolve(null);
               }
-              setIsScanning(false);
-              
-              let errorMessage = "Failed to start camera. Please check camera permissions.";
-              
-              if (renderError.message) {
-                if (renderError.message.includes('NotAllowedError')) {
-                  errorMessage = "Camera access denied. Please allow camera access in your browser settings.";
-                } else if (renderError.message.includes('NotFoundError')) {
-                  errorMessage = "No camera found. Please ensure your device has a camera.";
-                } else if (renderError.message.includes('NotReadableError')) {
-                  errorMessage = "Camera is busy. Please close other apps using the camera.";
-                } else if (renderError.message.includes('OverconstrainedError')) {
-                  errorMessage = "Camera doesn't support the required settings. Try a different camera.";
-                }
-              }
-              
-              toast({
-                title: "Camera failed to start",
-                description: errorMessage,
-                variant: "destructive"
-              });
-              
-              resolve(null);
-            }
+            }, 100); // Small delay to ensure DOM is fully ready
 
           } catch (error) {
             console.error('Failed to initialize web scanner:', error);
