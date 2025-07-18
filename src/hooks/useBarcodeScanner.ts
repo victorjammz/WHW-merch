@@ -44,6 +44,12 @@ export const useBarcodeScanner = () => {
   };
 
   const startScan = async (): Promise<BarcodeScanResult | null> => {
+    console.log('Starting scan - Platform check:', {
+      isNative: Capacitor.isNativePlatform(),
+      platform: Capacitor.getPlatform(),
+      userAgent: navigator.userAgent
+    });
+
     // For web environment, show a mock scanner for testing
     if (!Capacitor.isNativePlatform()) {
       toast({
