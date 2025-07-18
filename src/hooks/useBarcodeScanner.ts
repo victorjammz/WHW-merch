@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
-import { Capacitor } from '@capacitor/core';
+import { useState, useRef } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useToast } from '@/hooks/use-toast';
 
 export interface BarcodeScanResult {
@@ -11,35 +10,21 @@ export interface BarcodeScanResult {
 export const useBarcodeScanner = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const { toast } = useToast();
 
   const checkPermission = async (): Promise<boolean> => {
     try {
-      const permissions = await BarcodeScanner.checkPermissions();
-      
-      if (permissions.camera === 'granted') {
-        setHasPermission(true);
-        return true;
-      }
-      
-      // Request permissions if not granted
-      const result = await BarcodeScanner.requestPermissions();
-      if (result.camera === 'granted') {
-        setHasPermission(true);
-        return true;
-      }
-      
-      toast({
-        title: "Camera permission denied",
-        description: "Please enable camera access in your device settings to use barcode scanning",
-        variant: "destructive"
-      });
-      return false;
+      // For web-based scanner, we check if camera is available
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop());
+      setHasPermission(true);
+      return true;
     } catch (error) {
       console.error('Permission check failed:', error);
       toast({
-        title: "Permission error",
-        description: "Failed to check camera permissions",
+        title: "Camera permission denied",
+        description: "Please enable camera access to use barcode scanning",
         variant: "destructive"
       });
       return false;
@@ -47,83 +32,130 @@ export const useBarcodeScanner = () => {
   };
 
   const startScan = async (): Promise<BarcodeScanResult | null> => {
-    console.log('Starting scan - Platform check:', {
-      isNative: Capacitor.isNativePlatform(),
-      platform: Capacitor.getPlatform(),
-      userAgent: navigator.userAgent
-    });
+    console.log('Starting barcode scan...');
 
-    // For web environment, show a mock scanner for testing
-    if (!Capacitor.isNativePlatform()) {
-      toast({
-        title: "Web Demo Mode",
-        description: "Enter a test SKU to simulate scanning. Try 'TEST001' or any existing SKU.",
-        variant: "default"
-      });
-      
-      // For demo purposes, return a test result
-      const testSku = prompt("Enter SKU/Barcode to simulate scanning (or cancel):");
-      if (testSku) {
-        return {
-          hasContent: true,
-          content: testSku.trim()
-        };
-      }
-      return null;
-    }
-
-    // Mobile/Native platform - use actual camera
+    // Check permissions first
     const hasPermissions = await checkPermission();
     if (!hasPermissions) {
       return null;
     }
 
-    try {
-      setIsScanning(true);
-      
-      console.log('Starting camera scan...');
-      
-      const { barcodes } = await BarcodeScanner.scan();
-      
-      console.log('Scan result:', barcodes);
-      
-      setIsScanning(false);
-      
-      if (barcodes && barcodes.length > 0) {
-        const barcode = barcodes[0];
-        toast({
-          title: "Barcode scanned!",
-          description: `Found: ${barcode.displayValue}`,
+    return new Promise((resolve) => {
+      try {
+        setIsScanning(true);
+
+        // Create scanner element if it doesn't exist
+        let scannerElement = document.getElementById('barcode-scanner');
+        if (!scannerElement) {
+          scannerElement = document.createElement('div');
+          scannerElement.id = 'barcode-scanner';
+          scannerElement.style.position = 'fixed';
+          scannerElement.style.top = '0';
+          scannerElement.style.left = '0';
+          scannerElement.style.width = '100%';
+          scannerElement.style.height = '100%';
+          scannerElement.style.zIndex = '9999';
+          scannerElement.style.backgroundColor = 'black';
+          document.body.appendChild(scannerElement);
+        }
+
+        const scanner = new Html5QrcodeScanner(
+          'barcode-scanner',
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+          },
+          false
+        );
+
+        scannerRef.current = scanner;
+
+        scanner.render(
+          (decodedText) => {
+            console.log('Barcode scanned:', decodedText);
+            
+            // Stop scanner and clean up
+            scanner.clear();
+            const element = document.getElementById('barcode-scanner');
+            if (element) {
+              document.body.removeChild(element);
+            }
+            setIsScanning(false);
+            
+            toast({
+              title: "Barcode scanned!",
+              description: `Found: ${decodedText}`,
+            });
+            
+            resolve({
+              hasContent: true,
+              content: decodedText
+            });
+          },
+          (errorMessage) => {
+            // This is called for every frame that doesn't contain a barcode
+            // We don't want to log this as it's expected behavior
+          }
+        );
+
+        // Add a close button
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '✕ Close Scanner';
+        closeButton.style.position = 'absolute';
+        closeButton.style.top = '20px';
+        closeButton.style.right = '20px';
+        closeButton.style.zIndex = '10000';
+        closeButton.style.padding = '10px 15px';
+        closeButton.style.backgroundColor = '#ff4444';
+        closeButton.style.color = 'white';
+        closeButton.style.border = 'none';
+        closeButton.style.borderRadius = '5px';
+        closeButton.style.cursor = 'pointer';
+        
+        closeButton.addEventListener('click', () => {
+          scanner.clear();
+          const element = document.getElementById('barcode-scanner');
+          if (element) {
+            document.body.removeChild(element);
+          }
+          setIsScanning(false);
+          
+          toast({
+            title: "Scan cancelled",
+            description: "Barcode scanning was stopped.",
+          });
+          
+          resolve(null);
         });
-        return {
-          hasContent: true,
-          content: barcode.displayValue
-        };
-      } else {
+        
+        scannerElement.appendChild(closeButton);
+
+      } catch (error) {
+        console.error('Scanning failed:', error);
+        setIsScanning(false);
+        
         toast({
-          title: "No barcode detected",
-          description: "Please try scanning again with better lighting and focus.",
+          title: "Scanning failed",
+          description: `Camera error: ${error.message || 'Unknown error'}. Please try again.`,
           variant: "destructive"
         });
-        return null;
+        
+        resolve(null);
       }
-      
-    } catch (error) {
-      console.error('Scanning failed:', error);
-      setIsScanning(false);
-      
-      toast({
-        title: "Scanning failed",
-        description: `Camera error: ${error.message || 'Unknown error'}. Please try again.`,
-        variant: "destructive"
-      });
-      
-      return null;
-    }
+    });
   };
 
   const stopScan = async () => {
     try {
+      if (scannerRef.current) {
+        scannerRef.current.clear();
+      }
+      
+      const element = document.getElementById('barcode-scanner');
+      if (element) {
+        document.body.removeChild(element);
+      }
+      
       setIsScanning(false);
       
       toast({
