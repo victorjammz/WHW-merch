@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDebounce, useStableCallback } from "@/hooks/useOptimization";
 
 interface AddressSuggestion {
   display_name: string;
@@ -40,10 +41,9 @@ export function AddressAutocomplete({
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const debounceTimer = useRef<NodeJS.Timeout>();
 
-  const searchAddresses = async (query: string) => {
-    if (query.length < 3) {
+  const searchAddresses = useStableCallback(async (query: string) => {
+    if (query.length < 2) {
       setSuggestions([]);
       return;
     }
@@ -54,7 +54,7 @@ export function AddressAutocomplete({
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
           query
-        )}&format=json&addressdetails=1&limit=5&countrycodes=gb,ie`
+        )}&format=json&addressdetails=1&limit=8&countrycodes=gb,ie`
       );
       
       if (response.ok) {
@@ -67,39 +67,22 @@ export function AddressAutocomplete({
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
-  useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
+  const debouncedSearch = useDebounce(searchAddresses, 150);
 
-    debounceTimer.current = setTimeout(() => {
-      if (value && value.length >= 3) {
-        searchAddresses(value);
-      } else {
-        setSuggestions([]);
-      }
-    }, 300);
-
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, [value]);
-
-  const handleInputChange = (inputValue: string) => {
+  const handleInputChange = useCallback((inputValue: string) => {
     onChange(inputValue);
-    if (inputValue.length >= 3) {
+    if (inputValue.length >= 2) {
       setIsOpen(true);
+      debouncedSearch(inputValue);
     } else {
       setIsOpen(false);
       setSuggestions([]);
     }
-  };
+  }, [onChange, debouncedSearch]);
 
-  const handleAddressSelect = (suggestion: AddressSuggestion) => {
+  const handleAddressSelect = useCallback((suggestion: AddressSuggestion) => {
     const formattedAddress = formatDisplayAddress(suggestion);
     onChange(formattedAddress);
     setIsOpen(false);
@@ -108,9 +91,9 @@ export function AddressAutocomplete({
     if (onAddressSelect) {
       onAddressSelect(suggestion);
     }
-  };
+  }, [onChange, onAddressSelect]);
 
-  const formatDisplayAddress = (suggestion: AddressSuggestion) => {
+  const formatDisplayAddress = useCallback((suggestion: AddressSuggestion) => {
     const { address } = suggestion;
     const parts = [];
     
@@ -120,7 +103,7 @@ export function AddressAutocomplete({
     if (address.city) parts.push(address.city);
     
     return parts.join(", ");
-  };
+  }, []);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
