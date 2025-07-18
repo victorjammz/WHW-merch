@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit } from "lucide-react";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -578,10 +579,31 @@ const Orders = () => {
                   <Label htmlFor="address" className="text-right">
                     Address *
                   </Label>
-                  <Input id="address" value={newOrderForm.address} onChange={e => setNewOrderForm({
-                  ...newOrderForm,
-                  address: e.target.value
-                })} className="col-span-3" placeholder="Street address" />
+                  <div className="col-span-3">
+                    <AddressAutocomplete
+                      id="address"
+                      value={newOrderForm.address}
+                      onChange={(value) => setNewOrderForm({
+                        ...newOrderForm,
+                        address: value
+                      })}
+                      onAddressSelect={(suggestion) => {
+                        const formattedAddress = [
+                          suggestion.address.house_number,
+                          suggestion.address.road,
+                          suggestion.address.suburb,
+                          suggestion.address.city
+                        ].filter(Boolean).join(", ");
+                        
+                        setNewOrderForm({
+                          ...newOrderForm,
+                          address: formattedAddress,
+                          postcode: suggestion.address.postcode || newOrderForm.postcode
+                        });
+                      }}
+                      placeholder="Start typing an address..."
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="postcode" className="text-right">
@@ -1084,10 +1106,31 @@ const Orders = () => {
               <Label htmlFor="edit-address" className="text-right">
                 Address *
               </Label>
-              <Input id="edit-address" value={editOrderForm.address} onChange={e => setEditOrderForm({
-              ...editOrderForm,
-              address: e.target.value
-            })} className="col-span-3" placeholder="Street address" />
+              <div className="col-span-3">
+                <AddressAutocomplete
+                  id="edit-address"
+                  value={editOrderForm.address}
+                  onChange={(value) => setEditOrderForm({
+                    ...editOrderForm,
+                    address: value
+                  })}
+                  onAddressSelect={(suggestion) => {
+                    const formattedAddress = [
+                      suggestion.address.house_number,
+                      suggestion.address.road,
+                      suggestion.address.suburb,
+                      suggestion.address.city
+                    ].filter(Boolean).join(", ");
+                    
+                    setEditOrderForm({
+                      ...editOrderForm,
+                      address: formattedAddress,
+                      postcode: suggestion.address.postcode || editOrderForm.postcode
+                    });
+                  }}
+                  placeholder="Start typing an address..."
+                />
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-postcode" className="text-right">
