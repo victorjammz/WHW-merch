@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +57,8 @@ const EventOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [newOrderForm, setNewOrderForm] = useState({
     name: "",
     email: "",
@@ -68,13 +71,80 @@ const EventOrders = () => {
   });
   const { toast } = useToast();
 
+  // Fetch inventory items when dialog opens
+  useEffect(() => {
+    if (isNewOrderOpen) {
+      fetchInventoryItems();
+    }
+  }, [isNewOrderOpen]);
+
+  const fetchInventoryItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id, name, sku, price, quantity')
+        .gt('quantity', 0);
+      
+      if (error) throw error;
+      setInventoryItems(data || []);
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load inventory items",
+        variant: "destructive"
+      });
+    }
+  };
+
   const generateOrderId = () => {
     const nextNumber = orders.length + 1;
     return `EO-${String(nextNumber).padStart(3, '0')}`;
   };
 
   const handleNewOrder = () => {
+    setCurrentStep(1);
     setIsNewOrderOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsNewOrderOpen(false);
+    setCurrentStep(1);
+    setNewOrderForm({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      postcode: "",
+      items: "",
+      status: "pending",
+      payment: "pending"
+    });
+  };
+
+  const validateStep1 = () => {
+    return newOrderForm.name && 
+           newOrderForm.email && 
+           newOrderForm.phone && 
+           newOrderForm.address && 
+           newOrderForm.postcode && 
+           newOrderForm.items;
+  };
+
+  const handleNextStep = () => {
+    if (!validateStep1()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    setCurrentStep(2);
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep(1);
   };
 
   const handleCreateOrder = () => {
@@ -111,6 +181,7 @@ const EventOrders = () => {
       status: "pending",
       payment: "pending"
     });
+    setCurrentStep(1);
     setIsNewOrderOpen(false);
     
     toast({
@@ -205,123 +276,161 @@ const EventOrders = () => {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Event Order</DialogTitle>
+              <DialogTitle>Create New Event Order - Step {currentStep} of 2</DialogTitle>
               <DialogDescription>
-                Add a new event order with customer details and event information.
+                {currentStep === 1 
+                  ? "Enter customer details and select items for the event order."
+                  : "Set the order status and payment information."
+                }
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Name *
-                </Label>
-                <Input
-                  id="name"
-                  value={newOrderForm.name}
-                  onChange={(e) => setNewOrderForm({...newOrderForm, name: e.target.value})}
-                  className="col-span-3"
-                  placeholder="Customer name"
-                />
+
+            {currentStep === 1 && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Full Name *
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newOrderForm.name}
+                    onChange={(e) => setNewOrderForm({...newOrderForm, name: e.target.value})}
+                    className="col-span-3"
+                    placeholder="Customer full name"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email *
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newOrderForm.email}
+                    onChange={(e) => setNewOrderForm({...newOrderForm, email: e.target.value})}
+                    className="col-span-3"
+                    placeholder="customer@email.com"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">
+                    Phone *
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={newOrderForm.phone}
+                    onChange={(e) => setNewOrderForm({...newOrderForm, phone: e.target.value})}
+                    className="col-span-3"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="address" className="text-right">
+                    Address *
+                  </Label>
+                  <Input
+                    id="address"
+                    value={newOrderForm.address}
+                    onChange={(e) => setNewOrderForm({...newOrderForm, address: e.target.value})}
+                    className="col-span-3"
+                    placeholder="Street address"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="postcode" className="text-right">
+                    Postcode *
+                  </Label>
+                  <Input
+                    id="postcode"
+                    value={newOrderForm.postcode}
+                    onChange={(e) => setNewOrderForm({...newOrderForm, postcode: e.target.value})}
+                    className="col-span-3"
+                    placeholder="12345"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="items" className="text-right">
+                    Items *
+                  </Label>
+                  <Select value={newOrderForm.items} onValueChange={(value) => setNewOrderForm({...newOrderForm, items: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select items from inventory" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {inventoryItems.map((item) => (
+                        <SelectItem key={item.id} value={item.name}>
+                          {item.name} - ${item.price} (Stock: {item.quantity})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email *
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newOrderForm.email}
-                  onChange={(e) => setNewOrderForm({...newOrderForm, email: e.target.value})}
-                  className="col-span-3"
-                  placeholder="customer@email.com"
-                />
+            )}
+
+            {currentStep === 2 && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">
+                    Status *
+                  </Label>
+                  <Select value={newOrderForm.status} onValueChange={(value) => setNewOrderForm({...newOrderForm, status: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="payment" className="text-right">
+                    Payment *
+                  </Label>
+                  <Select value={newOrderForm.payment} onValueChange={(value) => setNewOrderForm({...newOrderForm, payment: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Phone *
-                </Label>
-                <Input
-                  id="phone"
-                  value={newOrderForm.phone}
-                  onChange={(e) => setNewOrderForm({...newOrderForm, phone: e.target.value})}
-                  className="col-span-3"
-                  placeholder="+1 (555) 123-4567"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="address" className="text-right">
-                  Address *
-                </Label>
-                <Input
-                  id="address"
-                  value={newOrderForm.address}
-                  onChange={(e) => setNewOrderForm({...newOrderForm, address: e.target.value})}
-                  className="col-span-3"
-                  placeholder="Street address"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="postcode" className="text-right">
-                  Postcode *
-                </Label>
-                <Input
-                  id="postcode"
-                  value={newOrderForm.postcode}
-                  onChange={(e) => setNewOrderForm({...newOrderForm, postcode: e.target.value})}
-                  className="col-span-3"
-                  placeholder="12345"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="items" className="text-right">
-                  Items *
-                </Label>
-                <Textarea
-                  id="items"
-                  value={newOrderForm.items}
-                  onChange={(e) => setNewOrderForm({...newOrderForm, items: e.target.value})}
-                  className="col-span-3"
-                  placeholder="Event package or items description"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right">
-                  Status
-                </Label>
-                <Select value={newOrderForm.status} onValueChange={(value) => setNewOrderForm({...newOrderForm, status: value})}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="payment" className="text-right">
-                  Payment
-                </Label>
-                <Select value={newOrderForm.payment} onValueChange={(value) => setNewOrderForm({...newOrderForm, payment: value})}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            )}
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsNewOrderOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateOrder}>Create Event Order</Button>
+              <div className="flex justify-between w-full">
+                <div>
+                  {currentStep === 2 && (
+                    <Button variant="outline" onClick={handlePrevStep}>
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Previous
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleCloseDialog}>
+                    Cancel
+                  </Button>
+                  {currentStep === 1 ? (
+                    <Button onClick={handleNextStep}>
+                      Next
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button onClick={handleCreateOrder}>
+                      Create Event Order
+                    </Button>
+                  )}
+                </div>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
