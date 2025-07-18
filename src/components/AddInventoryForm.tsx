@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Upload, Image, Trash2, Camera, FolderOpen, Check, ChevronsUpDown } from "lucide-react";
+import { X, Upload, Image, Trash2, Camera, FolderOpen, Check, ChevronsUpDown, Plus, Edit, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +24,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { cn } from "@/lib/utils";
+
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
 
 interface AddInventoryFormProps {
   onAdd: () => void;
@@ -51,6 +65,11 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [existingProductNames, setExistingProductNames] = useState<string[]>([]);
   const [openCombobox, setOpenCombobox] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [openCategoryDialog, setOpenCategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   const { toast } = useToast();
   const { getCurrencySymbol, currency } = useCurrency();
@@ -72,16 +91,103 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
     fetchProductNames();
   }, []);
 
-  const categories = [
-    "Shirts",
-    "Pants", 
-    "Dresses",
-    "Outerwear",
-    "Shoes",
-    "Accessories",
-    "Underwear",
-    "Activewear"
-  ];
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+      
+      if (!error && data) {
+        setCategories(data);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert([
+        {
+          name: newCategoryName,
+          description: newCategoryDescription || null
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: "Error adding category",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCategories(prev => [...prev, data]);
+    setNewCategoryName("");
+    setNewCategoryDescription("");
+    setOpenCategoryDialog(false);
+    toast({
+      title: "Success",
+      description: "Category added successfully"
+    });
+  };
+
+  const handleEditCategory = async () => {
+    if (!editingCategory || !newCategoryName.trim()) return;
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update({
+        name: newCategoryName,
+        description: newCategoryDescription || null
+      })
+      .eq('id', editingCategory.id)
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: "Error updating category",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCategories(prev => 
+      prev.map(cat => cat.id === editingCategory.id ? data : cat)
+    );
+    setEditingCategory(null);
+    setNewCategoryName("");
+    setNewCategoryDescription("");
+    setOpenCategoryDialog(false);
+    toast({
+      title: "Success",
+      description: "Category updated successfully"
+    });
+  };
+
+  const openEditDialog = (category: Category) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setNewCategoryDescription(category.description || "");
+    setOpenCategoryDialog(true);
+  };
+
+  const resetCategoryDialog = () => {
+    setEditingCategory(null);
+    setNewCategoryName("");
+    setNewCategoryDescription("");
+    setOpenCategoryDialog(false);
+  };
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const colors = ["Black", "White", "Grey", "Navy", "Brown", "Beige", "Red", "Blue", "Green"];
@@ -269,15 +375,92 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="category">Category *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="category">Category *</Label>
+              <Dialog open={openCategoryDialog} onOpenChange={setOpenCategoryDialog}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-6 px-2"
+                    onClick={() => resetCategoryDialog()}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-background border border-border z-50">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingCategory ? "Edit Category" : "Add New Category"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {editingCategory 
+                        ? "Update the category details below."
+                        : "Create a new category for your inventory items."
+                      }
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryName">Category Name *</Label>
+                      <Input
+                        id="categoryName"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="e.g., Seasonal Items"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryDescription">Description</Label>
+                      <Textarea
+                        id="categoryDescription"
+                        value={newCategoryDescription}
+                        onChange={(e) => setNewCategoryDescription(e.target.value)}
+                        placeholder="Optional description for this category"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={resetCategoryDialog}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={editingCategory ? handleEditCategory : handleAddCategory}
+                        disabled={!newCategoryName.trim()}
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        {editingCategory ? "Update" : "Add"} Category
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
             <Select value={formData.category} onValueChange={(value) => handleChange("category", value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background border border-border">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border border-border z-50">
                 {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                  <SelectItem key={category.id} value={category.name}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{category.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 ml-2 opacity-50 hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditDialog(category);
+                        }}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
