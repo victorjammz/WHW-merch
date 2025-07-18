@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw } from "lucide-react";
+import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw, Calendar, MapPin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,13 +37,88 @@ const Settings = () => {
     confirmPassword: ''
   });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [eventForm, setEventForm] = useState({
+    name: '',
+    location: '',
+    event_date: undefined as Date | undefined
+  });
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["profile", "notifications", "security", "regional", "appearance"].includes(tab)) {
+    if (tab && ["profile", "notifications", "security", "regional", "appearance", "events"].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (activeTab === "events") {
+      fetchEvents();
+    }
+  }, [activeTab]);
+
+  const fetchEvents = async () => {
+    setIsLoadingEvents(true);
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: true });
+      
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch events: " + error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!eventForm.name || !eventForm.location || !eventForm.event_date) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert([{
+          name: eventForm.name,
+          location: eventForm.location,
+          event_date: eventForm.event_date.toISOString().split('T')[0],
+          created_by: user?.id
+        }])
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Event created successfully"
+      });
+
+      setEventForm({ name: '', location: '', event_date: undefined });
+      setIsEventDialogOpen(false);
+      fetchEvents();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create event: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -225,12 +305,13 @@ const Settings = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 h-auto">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
           <TabsTrigger value="profile" className="text-xs md:text-sm p-2">Profile</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs md:text-sm p-2">Notifications</TabsTrigger>
           <TabsTrigger value="security" className="text-xs md:text-sm p-2">Security</TabsTrigger>
           <TabsTrigger value="regional" className="text-xs md:text-sm p-2">Regional</TabsTrigger>
           <TabsTrigger value="appearance" className="text-xs md:text-sm p-2">Appearance</TabsTrigger>
+          <TabsTrigger value="events" className="text-xs md:text-sm p-2">Events</TabsTrigger>
         </TabsList>
 
         {/* Profile Settings */}
@@ -750,6 +831,135 @@ const Settings = () => {
                   checked={settings?.sidebar_collapsed || false}
                   onCheckedChange={(checked) => updateSettings({ sidebar_collapsed: checked })}
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Events Management */}
+        <TabsContent value="events">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Events Management
+              </CardTitle>
+              <CardDescription>
+                Create and manage your events
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h4 className="text-sm font-medium">Events</h4>
+                <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Create Event
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Event</DialogTitle>
+                      <DialogDescription>
+                        Enter the event details below
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="eventName">Event Name</Label>
+                        <Input
+                          id="eventName"
+                          value={eventForm.name}
+                          onChange={(e) => setEventForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Enter event name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="eventLocation">Location</Label>
+                        <Input
+                          id="eventLocation"
+                          value={eventForm.location}
+                          onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))}
+                          placeholder="Enter event location"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Event Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !eventForm.event_date && "text-muted-foreground"
+                              )}
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              {eventForm.event_date ? format(eventForm.event_date, "PPP") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={eventForm.event_date}
+                              onSelect={(date) => setEventForm(prev => ({ ...prev, event_date: date }))}
+                              className="p-3 pointer-events-auto"
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsEventDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateEvent}>
+                        Create Event
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <Separator />
+
+              {/* Events List */}
+              <div className="space-y-4">
+                {isLoadingEvents ? (
+                  <div className="flex justify-center py-8">
+                    <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-primary"></div>
+                  </div>
+                ) : events.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No events created yet</p>
+                    <p className="text-sm">Create your first event to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {events.map((event) => (
+                      <Card key={event.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <h5 className="font-medium">{event.name}</h5>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {event.location}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(event.event_date), "PPP")}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
