@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
+import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 import { Capacitor } from '@capacitor/core';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,23 +15,26 @@ export const useBarcodeScanner = () => {
 
   const checkPermission = async (): Promise<boolean> => {
     try {
-      const status = await BarcodeScanner.checkPermission({ force: true });
+      const permissions = await BarcodeScanner.checkPermissions();
       
-      if (status.granted) {
+      if (permissions.camera === 'granted') {
         setHasPermission(true);
         return true;
       }
       
-      if (status.denied) {
-        toast({
-          title: "Camera permission denied",
-          description: "Please enable camera access in your device settings to use barcode scanning",
-          variant: "destructive"
-        });
-        return false;
+      // Request permissions if not granted
+      const result = await BarcodeScanner.requestPermissions();
+      if (result.camera === 'granted') {
+        setHasPermission(true);
+        return true;
       }
       
-      return status.granted;
+      toast({
+        title: "Camera permission denied",
+        description: "Please enable camera access in your device settings to use barcode scanning",
+        variant: "destructive"
+      });
+      return false;
     } catch (error) {
       console.error('Permission check failed:', error);
       toast({
@@ -78,28 +81,24 @@ export const useBarcodeScanner = () => {
     try {
       setIsScanning(true);
       
-      // Hide background content for full camera view
-      document.body.classList.add('scanner-active');
-      await BarcodeScanner.hideBackground();
-      
       console.log('Starting camera scan...');
       
-      const result = await BarcodeScanner.startScan();
+      const { barcodes } = await BarcodeScanner.scan();
       
-      console.log('Scan result:', result);
-      
-      // Show background content again
-      document.body.classList.remove('scanner-active');
-      await BarcodeScanner.showBackground();
+      console.log('Scan result:', barcodes);
       
       setIsScanning(false);
       
-      if (result.hasContent) {
+      if (barcodes && barcodes.length > 0) {
+        const barcode = barcodes[0];
         toast({
           title: "Barcode scanned!",
-          description: `Found: ${result.content}`,
+          description: `Found: ${barcode.displayValue}`,
         });
-        return result;
+        return {
+          hasContent: true,
+          content: barcode.displayValue
+        };
       } else {
         toast({
           title: "No barcode detected",
@@ -111,8 +110,6 @@ export const useBarcodeScanner = () => {
       
     } catch (error) {
       console.error('Scanning failed:', error);
-      document.body.classList.remove('scanner-active');
-      await BarcodeScanner.showBackground();
       setIsScanning(false);
       
       toast({
@@ -127,9 +124,6 @@ export const useBarcodeScanner = () => {
 
   const stopScan = async () => {
     try {
-      await BarcodeScanner.stopScan();
-      document.body.classList.remove('scanner-active');
-      await BarcodeScanner.showBackground();
       setIsScanning(false);
       
       toast({
@@ -138,7 +132,6 @@ export const useBarcodeScanner = () => {
       });
     } catch (error) {
       console.error('Failed to stop scan:', error);
-      document.body.classList.remove('scanner-active');
       setIsScanning(false);
     }
   };
