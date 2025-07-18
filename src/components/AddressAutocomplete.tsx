@@ -124,8 +124,10 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
       address: "",
       city: "",
       country: "United Kingdom",
-      postcode: postcode
+      postcode: postcode || ""
     });
+    setIsOpen(false);
+    setSuggestions([]);
   };
 
   const handleExpandedFormChange = (field: keyof ExpandedAddress, value: string) => {
@@ -273,7 +275,6 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
         variant="outline"
         onClick={handleManualEntry}
         className="w-full"
-        disabled={!postcode}
       >
         <Edit3 className="h-4 w-4 mr-2" />
         Enter Address Manually
