@@ -77,6 +77,45 @@ export type Database = {
         }
         Relationships: []
       }
+      event_orders: {
+        Row: {
+          client_name: string
+          created_at: string
+          event_date: string
+          event_name: string
+          id: string
+          items: Json
+          notes: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          event_date: string
+          event_name: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          event_date?: string
+          event_name?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           barcode_text: string | null
