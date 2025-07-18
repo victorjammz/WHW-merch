@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft } from "lucide-react";
+import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +62,7 @@ const EventOrders = () => {
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [isItemsPopoverOpen, setIsItemsPopoverOpen] = useState(false);
   const [newOrderForm, setNewOrderForm] = useState({
     name: "",
     email: "",
@@ -352,18 +356,52 @@ const EventOrders = () => {
                   <Label htmlFor="items" className="text-right">
                     Items *
                   </Label>
-                  <Select value={newOrderForm.items} onValueChange={(value) => setNewOrderForm({...newOrderForm, items: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select items from inventory" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {inventoryItems.map((item) => (
-                        <SelectItem key={item.id} value={item.name}>
-                          {item.name} - ${item.price} (Stock: {item.quantity})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={isItemsPopoverOpen} onOpenChange={setIsItemsPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isItemsPopoverOpen}
+                        className="col-span-3 justify-between"
+                      >
+                        {newOrderForm.items || "Search and select items from inventory..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search inventory items..." />
+                        <CommandList>
+                          <CommandEmpty>No inventory items found.</CommandEmpty>
+                          <CommandGroup>
+                            {inventoryItems.map((item) => (
+                              <CommandItem
+                                key={item.id}
+                                value={item.name}
+                                onSelect={(currentValue) => {
+                                  setNewOrderForm({...newOrderForm, items: currentValue});
+                                  setIsItemsPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    newOrderForm.items === item.name ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{item.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    ${item.price} • Stock: {item.quantity} • SKU: {item.sku}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             )}
