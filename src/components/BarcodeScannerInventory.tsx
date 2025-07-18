@@ -35,12 +35,17 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
   const { formatPrice } = useCurrency();
 
   const handleStartScan = async () => {
+    console.log('🎯 BarcodeScannerInventory: handleStartScan called');
     setIsDialogOpen(true);
+    console.log('📱 Dialog opened, starting scan...');
     const result = await startScan();
+    console.log('📊 Scan result:', result);
     
     if (result && result.hasContent) {
+      console.log('✅ Barcode found, searching inventory:', result.content);
       await searchInventoryBySKU(result.content);
     } else {
+      console.log('❌ No barcode scanned or scan cancelled');
       setIsDialogOpen(false);
     }
   };
