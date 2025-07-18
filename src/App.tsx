@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 import Inventory from "./pages/Inventory";
 import Customers from "./pages/Customers";
 import Orders from "./pages/Orders";
+import EventOrders from "./pages/EventOrders";
 import Analytics from "./pages/Analytics";
 import Barcodes from "./pages/Barcodes";
 import Reports from "./pages/Reports";
@@ -72,6 +73,7 @@ const AppRoutes = () => {
                         {/* Routes accessible by both roles */}
                         <Route path="/customers" element={<Customers />} />
                         <Route path="/orders" element={<Orders />} />
+                        <Route path="/event-orders" element={<EventOrders />} />
                         <Route path="/analytics" element={<Analytics />} />
                         <Route path="/barcodes" element={<Barcodes />} />
                         <Route path="/reports" element={<Reports />} />

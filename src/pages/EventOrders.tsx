@@ -1,0 +1,507 @@
+import { useState } from "react";
+import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+
+// Mock event order data
+const initialEventOrders = [
+  {
+    id: "EO-001",
+    name: "John Smith",
+    email: "john.smith@email.com",
+    phone: "+1 (555) 123-4567",
+    address: "123 Main St",
+    postcode: "10001",
+    items: "Wedding Package - Premium",
+    status: "confirmed",
+    payment: "paid",
+    date: "2024-02-15"
+  },
+  {
+    id: "EO-002",
+    name: "Sarah Johnson",
+    email: "sarah.j@email.com",
+    phone: "+1 (555) 987-6543",
+    address: "456 Oak Avenue",
+    postcode: "10002",
+    items: "Birthday Party Package",
+    status: "pending",
+    payment: "pending",
+    date: "2024-02-20"
+  },
+  {
+    id: "EO-003",
+    name: "Mike Wilson",
+    email: "mike.wilson@email.com",
+    phone: "+1 (555) 456-7890",
+    address: "789 Pine Road",
+    postcode: "10003",
+    items: "Corporate Event Setup",
+    status: "in_progress",
+    payment: "paid",
+    date: "2024-02-25"
+  }
+];
+
+const EventOrders = () => {
+  const [orders, setOrders] = useState(initialEventOrders);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
+  const [newOrderForm, setNewOrderForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    postcode: "",
+    items: "",
+    status: "pending",
+    payment: "pending"
+  });
+  const { toast } = useToast();
+
+  const generateOrderId = () => {
+    const nextNumber = orders.length + 1;
+    return `EO-${String(nextNumber).padStart(3, '0')}`;
+  };
+
+  const handleNewOrder = () => {
+    setIsNewOrderOpen(true);
+  };
+
+  const handleCreateOrder = () => {
+    if (!newOrderForm.name || !newOrderForm.email || !newOrderForm.phone || !newOrderForm.address || !newOrderForm.postcode || !newOrderForm.items) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newOrder = {
+      id: generateOrderId(),
+      name: newOrderForm.name,
+      email: newOrderForm.email,
+      phone: newOrderForm.phone,
+      address: newOrderForm.address,
+      postcode: newOrderForm.postcode,
+      items: newOrderForm.items,
+      status: newOrderForm.status,
+      payment: newOrderForm.payment,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    setOrders([newOrder, ...orders]);
+    setNewOrderForm({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      postcode: "",
+      items: "",
+      status: "pending",
+      payment: "pending"
+    });
+    setIsNewOrderOpen(false);
+    
+    toast({
+      title: "Event Order Created",
+      description: `Event order ${newOrder.id} has been created successfully`,
+    });
+  };
+
+  const handleExport = () => {
+    const csvContent = filteredOrders.map(order => 
+      `${order.id},${order.name},${order.email},${order.phone},${order.address},${order.postcode},${order.items},${order.status},${order.payment},${order.date}`
+    ).join('\n');
+    
+    const blob = new Blob([`Order ID,Name,Email,Phone,Address,Postcode,Items,Status,Payment,Date\n${csvContent}`], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'event-orders.csv';
+    link.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Complete",
+      description: "Event orders exported to CSV file",
+    });
+  };
+
+  const handleViewOrder = (orderId: string) => {
+    toast({
+      title: "View Event Order",
+      description: `Opening order details for ${orderId}`,
+    });
+  };
+
+  const handleEditOrder = (orderId: string) => {
+    toast({
+      title: "Edit Event Order",
+      description: `Opening edit form for order ${orderId}`,
+    });
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === "pending").length;
+  const confirmedOrders = orders.filter(o => o.status === "confirmed").length;
+  const inProgressOrders = orders.filter(o => o.status === "in_progress").length;
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "pending": return <Clock className="h-4 w-4" />;
+      case "confirmed": return <CheckCircle className="h-4 w-4" />;
+      case "in_progress": return <Calendar className="h-4 w-4" />;
+      case "completed": return <CheckCircle className="h-4 w-4" />;
+      case "cancelled": return <XCircle className="h-4 w-4" />;
+      default: return null;
+    }
+  };
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "pending": return "secondary";
+      case "confirmed": return "default";
+      case "in_progress": return "default";
+      case "completed": return "default";
+      case "cancelled": return "destructive";
+      default: return "secondary";
+    }
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Event Orders</h1>
+          <p className="text-muted-foreground">
+            Manage event bookings and special orders
+          </p>
+        </div>
+        <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleNewOrder}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Event Order
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Event Order</DialogTitle>
+              <DialogDescription>
+                Add a new event order with customer details and event information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Name *
+                </Label>
+                <Input
+                  id="name"
+                  value={newOrderForm.name}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, name: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Customer name"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email *
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newOrderForm.email}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, email: e.target.value})}
+                  className="col-span-3"
+                  placeholder="customer@email.com"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="phone" className="text-right">
+                  Phone *
+                </Label>
+                <Input
+                  id="phone"
+                  value={newOrderForm.phone}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, phone: e.target.value})}
+                  className="col-span-3"
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="address" className="text-right">
+                  Address *
+                </Label>
+                <Input
+                  id="address"
+                  value={newOrderForm.address}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, address: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Street address"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="postcode" className="text-right">
+                  Postcode *
+                </Label>
+                <Input
+                  id="postcode"
+                  value={newOrderForm.postcode}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, postcode: e.target.value})}
+                  className="col-span-3"
+                  placeholder="12345"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="items" className="text-right">
+                  Items *
+                </Label>
+                <Textarea
+                  id="items"
+                  value={newOrderForm.items}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, items: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Event package or items description"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select value={newOrderForm.status} onValueChange={(value) => setNewOrderForm({...newOrderForm, status: value})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="payment" className="text-right">
+                  Payment
+                </Label>
+                <Select value={newOrderForm.payment} onValueChange={(value) => setNewOrderForm({...newOrderForm, payment: value})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNewOrderOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateOrder}>Create Event Order</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              All event orders
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{pendingOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              Need attention
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{confirmedOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              Confirmed bookings
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{inProgressOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              Currently active
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Event Orders Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Event Orders</CardTitle>
+              <CardDescription>
+                View and manage all event bookings and special orders
+              </CardDescription>
+            </div>
+            <div className="flex gap-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search orders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 w-64"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleExport}>
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>Postcode</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredOrders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <div className="font-medium">{order.name}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-sm">{order.email}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-sm">{order.phone}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <div className="text-sm max-w-[150px] truncate">{order.address}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{order.postcode}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm max-w-[200px] truncate">{order.items}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">
+                      {getStatusIcon(order.status)}
+                      {order.status.replace('_', ' ')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={order.payment === "paid" ? "default" : order.payment === "pending" ? "secondary" : "destructive"}
+                    >
+                      {order.payment}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{order.date}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleViewOrder(order.id)}>
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)}>
+                        Edit
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default EventOrders;
