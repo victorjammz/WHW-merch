@@ -127,191 +127,146 @@ export const useBarcodeScanner = () => {
           return null;
         }
       } else {
-        // Use web-based scanner for browser
-        console.log('Using web-based barcode scanner');
+        // Use simplified web-based scanner for browser
+        console.log('🌐 Using web-based barcode scanner');
         
         return new Promise((resolve) => {
-          let scannerElement: HTMLElement | null = null;
-          let scanner: Html5QrcodeScanner | null = null;
+          let isResolved = false;
           
+          const cleanup = () => {
+            console.log('🧹 Cleaning up scanner...');
+            try {
+              if (scannerRef.current) {
+                scannerRef.current.clear();
+                scannerRef.current = null;
+              }
+            } catch (e) {
+              console.log('Warning: Error clearing scanner:', e);
+            }
+            
+            try {
+              const element = document.getElementById('barcode-scanner');
+              if (element && element.parentNode) {
+                document.body.removeChild(element);
+              }
+            } catch (e) {
+              console.log('Warning: Error removing scanner element:', e);
+            }
+            
+            setIsScanning(false);
+          };
+
+          const resolveOnce = (result: BarcodeScanResult | null) => {
+            if (!isResolved) {
+              isResolved = true;
+              cleanup();
+              resolve(result);
+            }
+          };
+
           try {
             console.log('🌐 Setting up web scanner...');
             
             // Clean up any existing scanner first
-            const existingElement = document.getElementById('barcode-scanner');
-            if (existingElement) {
-              console.log('🧹 Removing existing scanner element');
-              document.body.removeChild(existingElement);
-            }
+            cleanup();
 
             // Create scanner element
-            scannerElement = document.createElement('div');
+            const scannerElement = document.createElement('div');
             scannerElement.id = 'barcode-scanner';
-            scannerElement.style.position = 'fixed';
-            scannerElement.style.top = '0';
-            scannerElement.style.left = '0';
-            scannerElement.style.width = '100%';
-            scannerElement.style.height = '100%';
-            scannerElement.style.zIndex = '9999';
-            scannerElement.style.backgroundColor = '#000000';
-            scannerElement.style.display = 'flex';
-            scannerElement.style.flexDirection = 'column';
+            scannerElement.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              z-index: 9999;
+              background-color: #000000;
+              display: flex;
+              flex-direction: column;
+            `;
             document.body.appendChild(scannerElement);
-            console.log('✅ Scanner element created and added to DOM');
+            console.log('✅ Scanner element created');
 
-            const config = {
-              fps: 10,
-              qrbox: { width: 300, height: 300 },
-              aspectRatio: 1.0,
-              disableFlip: false,
-              rememberLastUsedCamera: true,
-              supportedScanTypes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // Support all barcode types
-              videoConstraints: {
-                facingMode: 'environment',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              }
-            };
-
-            console.log('📷 Creating Html5QrcodeScanner with config:', config);
-            scanner = new Html5QrcodeScanner(
-              'barcode-scanner',
-              config,
-              false // verbose = false
-            );
-
-            scannerRef.current = scanner;
-
-            // Add a close button first
+            // Add close button
             const closeButton = document.createElement('button');
             closeButton.innerHTML = '✕ Close Scanner';
-            closeButton.style.position = 'absolute';
-            closeButton.style.top = '20px';
-            closeButton.style.right = '20px';
-            closeButton.style.zIndex = '10000';
-            closeButton.style.padding = '10px 15px';
-            closeButton.style.backgroundColor = '#ff4444';
-            closeButton.style.color = 'white';
-            closeButton.style.border = 'none';
-            closeButton.style.borderRadius = '5px';
-            closeButton.style.cursor = 'pointer';
-            closeButton.style.fontSize = '14px';
+            closeButton.style.cssText = `
+              position: absolute;
+              top: 20px;
+              right: 20px;
+              z-index: 10000;
+              padding: 10px 15px;
+              background-color: #ff4444;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              font-size: 14px;
+              font-family: Arial, sans-serif;
+            `;
             
             closeButton.addEventListener('click', () => {
-              console.log('Close button clicked');
-              try {
-                scanner.clear();
-              } catch (error) {
-                console.error('Error clearing scanner:', error);
-              }
-              const element = document.getElementById('barcode-scanner');
-              if (element) {
-                document.body.removeChild(element);
-              }
-              setIsScanning(false);
-              
+              console.log('❌ Close button clicked');
               toast({
                 title: "Scan cancelled",
                 description: "Barcode scanning was stopped.",
               });
-              
-              resolve(null);
+              resolveOnce(null);
             });
             
             scannerElement.appendChild(closeButton);
 
+            // Simple, reliable scanner config
+            const config = {
+              fps: 10,
+              qrbox: { width: 250, height: 250 }
+            };
+
+            console.log('📷 Creating Html5QrcodeScanner with simplified config...');
+            
+            const scanner = new Html5QrcodeScanner('barcode-scanner', config, false);
+            scannerRef.current = scanner;
+
             console.log('🎬 Starting scanner render...');
             
-            // Add a delay to ensure DOM is ready
-            setTimeout(() => {
-              try {
-                scanner.render(
-                  (decodedText) => {
-                    console.log('✅ Web barcode scanned successfully:', decodedText);
-                    
-                    try {
-                      if (scanner) {
-                        scanner.clear();
-                      }
-                    } catch (error) {
-                      console.error('Error clearing scanner after scan:', error);
-                    }
-                    
-                    const element = document.getElementById('barcode-scanner');
-                    if (element && element.parentNode) {
-                      document.body.removeChild(element);
-                    }
-                    setIsScanning(false);
-                    
-                    toast({
-                      title: "Barcode scanned!",
-                      description: `Found: ${decodedText}`,
-                    });
-                    
-                    resolve({
-                      hasContent: true,
-                      content: decodedText
-                    });
-                  },
-                  (errorMessage) => {
-                    // Only log real errors, not scanning attempts
-                    if (errorMessage && 
-                        !errorMessage.includes('No MultiFormat Readers') && 
-                        !errorMessage.includes('NotFoundException') &&
-                        !errorMessage.includes('No QR code found')) {
-                      console.log('⚠️ Scanner error (may be non-critical):', errorMessage);
-                    }
-                  }
-                );
-                console.log('🚀 Scanner render initiated successfully');
-              } catch (renderError) {
-                console.error('❌ Scanner render failed:', renderError);
-                
-                if (scannerElement && scannerElement.parentNode) {
-                  document.body.removeChild(scannerElement);
-                }
-                setIsScanning(false);
-                
-                let errorMessage = "Failed to start camera. Please check camera permissions.";
-                
-                if (renderError.message) {
-                  if (renderError.message.includes('NotAllowedError')) {
-                    errorMessage = "Camera access denied. Please allow camera access in your browser settings.";
-                  } else if (renderError.message.includes('NotFoundError')) {
-                    errorMessage = "No camera found. Please ensure your device has a camera.";
-                  } else if (renderError.message.includes('NotReadableError')) {
-                    errorMessage = "Camera is busy. Please close other apps using the camera.";
-                  } else if (renderError.message.includes('OverconstrainedError')) {
-                    errorMessage = "Camera doesn't support the required settings. Try a different camera.";
-                  }
-                }
+            scanner.render(
+              (decodedText) => {
+                console.log('✅ Barcode scanned:', decodedText);
                 
                 toast({
-                  title: "Camera failed to start",
-                  description: errorMessage,
-                  variant: "destructive"
+                  title: "Barcode scanned!",
+                  description: `Found: ${decodedText}`,
                 });
                 
-                resolve(null);
+                resolveOnce({
+                  hasContent: true,
+                  content: decodedText
+                });
+              },
+              (errorMessage) => {
+                // Only log meaningful errors
+                if (errorMessage && 
+                    !errorMessage.includes('No MultiFormat Readers') && 
+                    !errorMessage.includes('NotFoundException') &&
+                    !errorMessage.includes('No QR code found') &&
+                    !errorMessage.includes('QR code parse error')) {
+                  console.log('⚠️ Scanner error:', errorMessage);
+                }
               }
-            }, 100); // Small delay to ensure DOM is fully ready
-
-          } catch (error) {
-            console.error('Failed to initialize web scanner:', error);
-            setIsScanning(false);
+            );
             
-            const element = document.getElementById('barcode-scanner');
-            if (element) {
-              document.body.removeChild(element);
-            }
+            console.log('🚀 Scanner initialized successfully');
+            
+          } catch (error) {
+            console.error('❌ Failed to set up scanner:', error);
             
             toast({
               title: "Scanner initialization failed",
-              description: `Failed to initialize barcode scanner: ${error.message || 'Unknown error'}. Please try again.`,
+              description: `Unable to initialize barcode scanner: ${error.message || 'Unknown error'}. Please try refreshing the page.`,
               variant: "destructive"
             });
             
-            resolve(null);
+            resolveOnce(null);
           }
         });
       }
