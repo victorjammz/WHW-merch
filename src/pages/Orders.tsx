@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit } from "lucide-react";
+import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit, Star } from "lucide-react";
 import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -141,6 +141,7 @@ const Orders = () => {
     city: "",
     country: "",
     postcode: "",
+    event_id: "",
     status: "pending",
     payment: "pending"
   });
@@ -169,13 +170,47 @@ const Orders = () => {
     settings
   } = useUserSettings();
 
+  // Events state
+  const [events, setEvents] = useState<any[]>([]);
+  const [isEventsOpen, setIsEventsOpen] = useState(false);
+  const [eventSearch, setEventSearch] = useState("");
+  const [defaultEvent, setDefaultEvent] = useState<any>(null);
+  const [defaultEventExpiry, setDefaultEventExpiry] = useState<number | null>(null);
+
   // Fetch inventory items and categories when dialog opens
   useEffect(() => {
     if (isNewOrderOpen || isEditOrderOpen) {
       fetchInventoryItems();
       fetchCategories();
+      fetchEvents();
     }
   }, [isNewOrderOpen, isEditOrderOpen]);
+
+  // Load default event from localStorage on component mount
+  useEffect(() => {
+    const savedDefault = localStorage.getItem('defaultEvent');
+    const savedExpiry = localStorage.getItem('defaultEventExpiry');
+    
+    if (savedDefault && savedExpiry) {
+      const expiry = parseInt(savedExpiry);
+      if (Date.now() < expiry) {
+        try {
+          const event = JSON.parse(savedDefault);
+          setDefaultEvent(event);
+          setDefaultEventExpiry(expiry);
+          setNewOrderForm(prev => ({ ...prev, event_id: event.id }));
+        } catch (error) {
+          // Clear invalid data
+          localStorage.removeItem('defaultEvent');
+          localStorage.removeItem('defaultEventExpiry');
+        }
+      } else {
+        // Expired, clear it
+        localStorage.removeItem('defaultEvent');
+        localStorage.removeItem('defaultEventExpiry');
+      }
+    }
+  }, []);
   const fetchInventoryItems = async () => {
     try {
       const {
@@ -210,6 +245,24 @@ const Orders = () => {
       });
     }
   };
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load events",
+        variant: "destructive"
+      });
+    }
 
   // Filter products when category changes
   useEffect(() => {
@@ -267,6 +320,7 @@ const Orders = () => {
       city: "",
       country: "",
       postcode: "",
+      event_id: defaultEvent?.id || "",
       status: "pending",
       payment: "pending"
     });
@@ -280,7 +334,7 @@ const Orders = () => {
     });
   };
   const validateStep1 = () => {
-    return newOrderForm.name && newOrderForm.email && newOrderForm.phone && newOrderForm.address && newOrderForm.city && newOrderForm.postcode && orderItems.length > 0;
+    return newOrderForm.name && newOrderForm.email && newOrderForm.phone && newOrderForm.address && newOrderForm.city && newOrderForm.postcode && newOrderForm.event_id && orderItems.length > 0;
   };
   const validateCurrentItem = () => {
     const product = inventoryItems.find(item => item.name === currentItem.product);
@@ -374,6 +428,7 @@ const Orders = () => {
       phone: newOrderForm.phone,
       address: `${newOrderForm.address}, ${newOrderForm.city}, ${newOrderForm.country}`,
       postcode: newOrderForm.postcode,
+      event_id: newOrderForm.event_id,
       items: orderItemsFormatted,
       status: newOrderForm.status,
       payment: newOrderForm.payment,
@@ -600,6 +655,89 @@ const Orders = () => {
                     />
                   </div>
                 </div>
+                
+                {/* Event Selection */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="event" className="text-right">
+                    Event *
+                  </Label>
+                  <div className="col-span-3 relative">
+                    <Popover open={isEventsOpen} onOpenChange={setIsEventsOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isEventsOpen}
+                          className="w-full justify-between"
+                        >
+                          {newOrderForm.event_id ? 
+                            events.find(event => event.id === newOrderForm.event_id)?.name || "Select event..."
+                            : "Select event..."
+                          }
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Search events..." 
+                            value={eventSearch}
+                            onValueChange={setEventSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>No events found.</CommandEmpty>
+                            <CommandGroup>
+                              {filteredEvents.map((event) => (
+                                <CommandItem
+                                  key={event.id}
+                                  value={event.id}
+                                  onSelect={() => {
+                                    setNewOrderForm(prev => ({ ...prev, event_id: event.id }));
+                                    setIsEventsOpen(false);
+                                  }}
+                                  className="flex items-center justify-between"
+                                >
+                                  <div className="flex-1">
+                                    <div className="font-medium">{event.name}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {event.location} • {new Date(event.event_date).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {defaultEvent?.id === event.id && (
+                                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSetDefaultEvent(event);
+                                      }}
+                                      className="h-6 px-2 text-xs"
+                                    >
+                                      Set Default
+                                    </Button>
+                                  </div>
+                                  <Check
+                                    className={`ml-2 h-4 w-4 ${
+                                      newOrderForm.event_id === event.id ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {defaultEvent && defaultEventExpiry && Date.now() < defaultEventExpiry && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Default: {defaultEvent.name} (expires in {Math.round((defaultEventExpiry - Date.now()) / (1000 * 60 * 60))}h)
+                      </p>
+                    )}
+                  </div>
+                </div>
                 {/* Add Items Section */}
                 <div className="border rounded-lg p-4 space-y-4">
                   <h3 className="font-semibold">Add Items to Order</h3>
@@ -781,20 +919,15 @@ const Orders = () => {
                   </Button>
                   {currentStep === 1 ? <Button onClick={handleNextStep}>
                       Next
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button> : <Button onClick={handleCreateOrder}>
-                      Create Event Order
+                       <ArrowRight className="ml-2 h-4 w-4" />
+                     </Button> : <Button onClick={handleCreateOrder}>
+                       Create Order
                     </Button>}
                 </div>
               </div>
             </DialogFooter>
           </DialogContent>
           </Dialog>
-          
-          <Button variant="outline" onClick={handleNewOrder} className="text-yellow-900 bg-slate-50">
-            <Plus className="mr-2 h-4 w-4" />
-            Event Orders
-          </Button>
         </div>
       </div>
 
@@ -1227,6 +1360,7 @@ const Orders = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>;
+    </div>
+  );
 };
 export default Orders;
