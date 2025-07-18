@@ -50,7 +50,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
   });
 
   const searchPostcodes = useStableCallback(async (query: string) => {
-    if (query.length < 2) {
+    if (query.length < 5) {
       setSuggestions([]);
       return;
     }
@@ -80,7 +80,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
 
   const handlePostcodeChange = useCallback((inputValue: string) => {
     setPostcode(inputValue);
-    if (inputValue.length >= 2) {
+    if (inputValue.length >= 5) {
       setIsOpen(true);
       debouncedSearch(inputValue);
     } else {
@@ -239,7 +239,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
               <CommandList>
                 {isLoading ? (
                   <CommandEmpty>Searching postcodes...</CommandEmpty>
-                ) : suggestions.length === 0 && postcode.length >= 2 ? (
+                ) : suggestions.length === 0 && postcode.length >= 5 ? (
                   <CommandEmpty>No postcodes found. Try a different postcode.</CommandEmpty>
                 ) : (
                   <CommandGroup>
