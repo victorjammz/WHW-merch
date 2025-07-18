@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock event order data
+// Mock event order data with detailed items
 const initialEventOrders = [
   {
     id: "EO-001",
@@ -24,7 +24,11 @@ const initialEventOrders = [
     phone: "+1 (555) 123-4567",
     address: "123 Main St",
     postcode: "10001",
-    items: "Wedding Package - Premium",
+    items: [
+      { name: "Wedding Dress - Premium", quantity: 1, price: 299.99 },
+      { name: "Suit - Classic", quantity: 1, price: 199.99 },
+      { name: "Decoration Package", quantity: 1, price: 150.00 }
+    ],
     status: "confirmed",
     payment: "paid",
     date: "2024-02-15"
@@ -36,7 +40,11 @@ const initialEventOrders = [
     phone: "+1 (555) 987-6543",
     address: "456 Oak Avenue",
     postcode: "10002",
-    items: "Birthday Party Package",
+    items: [
+      { name: "Birthday Cake Toppers", quantity: 5, price: 12.99 },
+      { name: "Party Decorations", quantity: 2, price: 25.00 },
+      { name: "Gift Bags", quantity: 10, price: 3.50 }
+    ],
     status: "pending",
     payment: "pending",
     date: "2024-02-20"
@@ -48,12 +56,29 @@ const initialEventOrders = [
     phone: "+1 (555) 456-7890",
     address: "789 Pine Road",
     postcode: "10003",
-    items: "Corporate Event Setup",
+    items: [
+      { name: "Corporate Banner", quantity: 2, price: 75.00 },
+      { name: "Table Setup", quantity: 10, price: 15.00 },
+      { name: "Sound System Rental", quantity: 1, price: 200.00 }
+    ],
     status: "in_progress",
     payment: "paid",
     date: "2024-02-25"
   }
 ];
+
+// Function to calculate total for an order
+const calculateOrderTotal = (items: any[]) => {
+  return items.reduce((total, item) => total + (item.quantity * item.price), 0);
+};
+
+// Function to format items display
+const formatItemsDisplay = (items: any[]) => {
+  if (items.length === 1) {
+    return `${items[0].name} x${items[0].quantity}`;
+  }
+  return `${items.length} items`;
+};
 
 const EventOrders = () => {
   const [orders, setOrders] = useState(initialEventOrders);
@@ -247,7 +272,7 @@ const EventOrders = () => {
       phone: newOrderForm.phone,
       address: newOrderForm.address,
       postcode: newOrderForm.postcode,
-      items: itemsDescription,
+      items: [{ name: itemsDescription, quantity: 1, price: 0 }], // Default structure for new orders
       status: newOrderForm.status,
       payment: newOrderForm.payment,
       date: new Date().toISOString().split('T')[0]
@@ -278,7 +303,7 @@ const EventOrders = () => {
 
   const handleExport = () => {
     const csvContent = filteredOrders.map(order => 
-      `${order.id},${order.name},${order.email},${order.phone},${order.address},${order.postcode},${order.items},${order.status},${order.payment},${order.date}`
+      `${order.id},${order.name},${order.email},${order.phone},${order.address},${order.postcode},"${formatItemsDisplay(order.items)}",${order.status},${order.payment},${order.date}`
     ).join('\n');
     
     const blob = new Blob([`Order ID,Name,Email,Phone,Address,Postcode,Items,Status,Payment,Date\n${csvContent}`], { type: 'text/csv' });
@@ -308,7 +333,9 @@ const EventOrders = () => {
     if (order) {
       setSelectedOrder(order);
       // Parse the items back into category, product, size, color if possible
-      const itemsParts = order.items.split(' - ');
+      const itemsArray = Array.isArray(order.items) ? order.items : [{ name: order.items, quantity: 1, price: 0 }];
+      const firstItem = itemsArray[0]?.name || "";
+      const itemsParts = firstItem.split(' - ');
       setEditOrderForm({
         name: order.name,
         email: order.email,
@@ -349,7 +376,7 @@ const EventOrders = () => {
             phone: editOrderForm.phone,
             address: editOrderForm.address,
             postcode: editOrderForm.postcode,
-            items: itemsDescription,
+            items: [{ name: itemsDescription, quantity: 1, price: 0 }], // Default structure for updated orders
             status: editOrderForm.status,
             payment: editOrderForm.payment
           }
@@ -754,6 +781,7 @@ const EventOrders = () => {
                 <TableHead>Address</TableHead>
                 <TableHead>Postcode</TableHead>
                 <TableHead>Items</TableHead>
+                <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Date</TableHead>
@@ -791,7 +819,10 @@ const EventOrders = () => {
                     <div className="text-sm">{order.postcode}</div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm max-w-[200px] truncate">{order.items}</div>
+                    <div className="text-sm max-w-[200px] truncate">{formatItemsDisplay(order.items)}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm font-semibold">${calculateOrderTotal(order.items).toFixed(2)}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">
@@ -872,7 +903,25 @@ const EventOrders = () => {
               </div>
               <div>
                 <Label className="text-sm font-medium text-muted-foreground">Items</Label>
-                <p className="text-sm">{selectedOrder.items}</p>
+                <div className="space-y-2">
+                  {Array.isArray(selectedOrder.items) ? (
+                    selectedOrder.items.map((item: any, index: number) => (
+                      <div key={index} className="text-sm border rounded p-2">
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Quantity: {item.quantity} × ${item.price.toFixed(2)} = ${(item.quantity * item.price).toFixed(2)}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm">{selectedOrder.items}</p>
+                  )}
+                  {Array.isArray(selectedOrder.items) && (
+                    <div className="text-sm font-semibold border-t pt-2">
+                      Total: ${calculateOrderTotal(selectedOrder.items).toFixed(2)}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
