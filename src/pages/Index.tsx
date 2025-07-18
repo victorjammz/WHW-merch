@@ -1,16 +1,10 @@
 import { useState, useEffect } from "react";
-import { Plus, Package, ShoppingCart, TrendingUp, AlertTriangle, QrCode, Calendar } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { InventoryTable } from "@/components/InventoryTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
-import { POSConnectionCard } from "@/components/POSConnectionCard";
-import { BarcodeGenerator } from "@/components/BarcodeGenerator";
+import { DashboardWidgets } from "@/components/DashboardWidgets";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrency } from "@/contexts/CurrencyContext";
 interface InventoryItem {
   id: string;
   sku: string;
@@ -31,13 +25,7 @@ const Index = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
-  const {
-    toast
-  } = useToast();
-  const navigate = useNavigate();
-  const {
-    formatPrice
-  } = useCurrency();
+  const { toast } = useToast();
   useEffect(() => {
     const fetchInventory = async () => {
       const {
@@ -65,12 +53,7 @@ const Index = () => {
     fetchInventory();
     fetchPendingOrders();
   }, [toast]);
-  const stats = {
-    totalItems: inventoryData.reduce((sum, item) => sum + item.quantity, 0),
-    totalValue: inventoryData.reduce((sum, item) => sum + item.quantity * item.price, 0),
-    lowStockItems: inventoryData.filter(item => item.status === "low").length,
-    totalProducts: inventoryData.length
-  };
+
   const handleAddInventory = () => {
     setShowAddForm(false);
     // Refresh inventory data
@@ -92,90 +75,11 @@ const Index = () => {
         </div>
       </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
-          <Card className="shadow-card border-l-4 border-l-primary">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Inventory</CardTitle>
-              <Package className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{stats.totalItems}</div>
-              <p className="text-xs text-muted-foreground mt-1">Items in stock</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card border-l-4 border-l-success">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
-              <TrendingUp className="h-5 w-5 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatPrice(stats.totalValue)}</div>
-              <p className="text-xs text-muted-foreground mt-1">+12% from last month</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card border-l-4 border-l-accent">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
-              <ShoppingCart className="h-5 w-5 text-accent-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{stats.totalProducts}</div>
-              <p className="text-xs text-muted-foreground mt-1">Unique SKUs</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card border-l-4 border-l-warning">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Low Stock Alerts</CardTitle>
-              <AlertTriangle className="h-5 w-5 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-warning">{stats.lowStockItems}</div>
-              <p className="text-xs text-muted-foreground mt-1">Need immediate attention</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card border-l-4 border-l-info cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/event-orders')}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Orders</CardTitle>
-              <Calendar className="h-5 w-5 text-info" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{pendingOrdersCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">Click to view orders</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* CRM Features Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
-          <div className="xl:col-span-2 order-2 xl:order-1">
-            <Card className="shadow-card">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Package className="h-5 w-5" />
-                  Inventory Management
-                </CardTitle>
-                <CardDescription className="text-sm">
-                  Manage your clothing inventory, track stock levels, and monitor product performance
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-3 md:p-6">
-                <InventoryTable data={inventoryData} />
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="space-y-4 md:space-y-6 order-1 xl:order-2">
-            <BarcodeGenerator onGenerate={(code, type) => {
-          console.log('Generated barcode:', code, type);
-        }} />
-            <POSConnectionCard />
-          </div>
-        </div>
+      {/* Dashboard Widgets */}
+      <DashboardWidgets 
+        inventoryData={inventoryData} 
+        pendingOrdersCount={pendingOrdersCount} 
+      />
 
         {/* Add Inventory Modal */}
         {showAddForm && <AddInventoryForm onAdd={handleAddInventory} onCancel={() => setShowAddForm(false)} />}
