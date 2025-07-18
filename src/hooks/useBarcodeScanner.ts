@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
+import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 
 export interface BarcodeScanResult {
   hasContent: boolean;
@@ -19,19 +19,27 @@ export const useBarcodeScanner = () => {
     try {
       if (Capacitor.isNativePlatform()) {
         // For native platforms, check camera permission
-        const status = await BarcodeScanner.checkPermission({ force: true });
+        const status = await BarcodeScanner.checkPermissions();
         
-        if (status.granted) {
+        if (status.camera === 'granted') {
           setHasPermission(true);
           console.log('Native camera permission granted');
           return true;
         } else {
-          toast({
-            title: "Camera permission required",
-            description: "Please allow camera access in your device settings to use barcode scanning",
-            variant: "destructive"
-          });
-          return false;
+          // Request permission if not granted
+          const requestResult = await BarcodeScanner.requestPermissions();
+          if (requestResult.camera === 'granted') {
+            setHasPermission(true);
+            console.log('Native camera permission granted after request');
+            return true;
+          } else {
+            toast({
+              title: "Camera permission required",
+              description: "Please allow camera access in your device settings to use barcode scanning",
+              variant: "destructive"
+            });
+            return false;
+          }
         }
       } else {
         // For web platforms, check getUserMedia
@@ -93,27 +101,28 @@ export const useBarcodeScanner = () => {
         document.body.style.background = 'transparent';
         
         // Start the native scanner
-        const result = await BarcodeScanner.startScan();
+        const result = await BarcodeScanner.scan();
         
         setIsScanning(false);
         
         // Restore background
         document.body.style.background = '';
         
-        if (result.hasContent) {
-          console.log('Native barcode scanned successfully:', result.content);
+        if (result.barcodes && result.barcodes.length > 0) {
+          const scannedValue = result.barcodes[0].displayValue || result.barcodes[0].rawValue;
+          console.log('Native barcode scanned successfully:', scannedValue);
           
           toast({
             title: "Barcode scanned!",
-            description: `Found: ${result.content}`,
+            description: `Found: ${scannedValue}`,
           });
           
           return {
             hasContent: true,
-            content: result.content
+            content: scannedValue
           };
         } else {
-          console.log('Native scan cancelled');
+          console.log('Native scan cancelled or no barcode found');
           return null;
         }
       } else {
