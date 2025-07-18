@@ -533,14 +533,15 @@ const Orders = () => {
             Manage orders and special requests
           </p>
         </div>
-        <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleNewOrder}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Order
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <div className="flex gap-2">
+          <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleNewOrder}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Order
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Order - Step {currentStep} of 2</DialogTitle>
               <DialogDescription>
@@ -824,7 +825,13 @@ const Orders = () => {
               </div>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+          
+          <Button variant="outline" onClick={handleNewOrder}>
+            <Plus className="mr-2 h-4 w-4" />
+            Event Orders
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
