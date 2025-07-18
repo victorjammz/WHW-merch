@@ -14,9 +14,9 @@ const DEFAULT_LAYOUT: Layout[] = [
   { i: "active-products", x: 4, y: 0, w: 2, h: 2, minW: 2, minH: 2 },
   { i: "low-stock", x: 6, y: 0, w: 2, h: 2, minW: 2, minH: 2 },
   { i: "pending-orders", x: 8, y: 0, w: 2, h: 2, minW: 2, minH: 2 },
-  { i: "inventory-table", x: 0, y: 2, w: 7, h: 8, minW: 4, minH: 6 },
-  { i: "barcode-generator", x: 7, y: 2, w: 3, h: 4, minW: 2, minH: 3 },
-  { i: "pos-connection", x: 7, y: 6, w: 3, h: 4, minW: 2, minH: 3 },
+  { i: "inventory-table", x: 0, y: 2, w: 8, h: 6, minW: 6, minH: 4 },
+  { i: "barcode-generator", x: 8, y: 2, w: 2, h: 3, minW: 2, minH: 3 },
+  { i: "pos-connection", x: 8, y: 5, w: 2, h: 3, minW: 2, minH: 3 },
 ];
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
