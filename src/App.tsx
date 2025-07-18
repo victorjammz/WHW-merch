@@ -25,6 +25,7 @@ import UserManagement from "./pages/UserManagement";
 import RoleManagement from "./pages/RoleManagement";
 import Auth from "./pages/Auth";
 import Unauthorized from "./pages/Unauthorized";
+import PendingApproval from "./pages/PendingApproval";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route path="/pending-approval" element={<PendingApproval />} />
       <Route
         path="/*"
         element={

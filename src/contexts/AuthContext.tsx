@@ -11,6 +11,9 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   role: UserRole;
+  status: 'pending' | 'approved' | 'rejected';
+  approved_at: string | null;
+  approved_by: string | null;
 }
 
 interface AuthContextType {
@@ -150,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' && profile?.status === 'approved';
 
   return (
     <AuthContext.Provider

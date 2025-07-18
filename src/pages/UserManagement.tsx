@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Search, Edit, Shield, UserPlus, Trash2, Save, X, Check } from "lucide-react";
+import { Users, Search, Edit, Shield, UserPlus, Trash2, Save, X, Check, UserCheck, UserX } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,9 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   role: 'admin' | 'employee';
+  status: 'pending' | 'approved' | 'rejected';
+  approved_at: string | null;
+  approved_by: string | null;
   created_at: string;
 }
 
@@ -186,6 +189,86 @@ export default function UserManagement() {
     }
   };
 
+  const handleApproveUser = async (user: UserProfile) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          status: 'approved',
+          approved_at: new Date().toISOString(),
+          approved_by: currentUser?.id
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setUsers(users.map(u => {
+        if (u.id === user.id) {
+          return {
+            ...u,
+            status: 'approved' as const,
+            approved_at: new Date().toISOString(),
+            approved_by: currentUser?.id || null
+          };
+        }
+        return u;
+      }));
+
+      toast({
+        title: "User approved",
+        description: `${user.email} has been approved and can now access the system`
+      });
+    } catch (error) {
+      console.error('Error approving user:', error);
+      toast({
+        title: "Error approving user",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectUser = async (user: UserProfile) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          status: 'rejected',
+          approved_at: new Date().toISOString(),
+          approved_by: currentUser?.id
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setUsers(users.map(u => {
+        if (u.id === user.id) {
+          return {
+            ...u,
+            status: 'rejected' as const,
+            approved_at: new Date().toISOString(),
+            approved_by: currentUser?.id || null
+          };
+        }
+        return u;
+      }));
+
+      toast({
+        title: "User rejected",
+        description: `${user.email} has been rejected and cannot access the system`
+      });
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      toast({
+        title: "Error rejecting user",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const searchLower = searchTerm.toLowerCase();
     const email = user.email.toLowerCase();
@@ -274,6 +357,7 @@ export default function UserManagement() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Date Added</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -333,10 +417,43 @@ export default function UserManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        <Badge
+                          variant={
+                            user.status === 'approved' ? 'default' :
+                            user.status === 'pending' ? 'secondary' :
+                            'destructive'
+                          }
+                        >
+                          {user.status === 'approved' ? 'Approved' :
+                           user.status === 'pending' ? 'Pending' :
+                           'Rejected'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {new Date(user.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
+                          {user.status === 'pending' && isAdmin && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleApproveUser(user)}
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRejectUser(user)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"

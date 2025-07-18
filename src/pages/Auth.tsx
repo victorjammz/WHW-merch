@@ -112,7 +112,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Account created!",
-        description: "Please check your email for a verification link.",
+        description: "Your account has been created and is pending approval by an administrator.",
       });
       // Clear form
       setSignupEmail("");

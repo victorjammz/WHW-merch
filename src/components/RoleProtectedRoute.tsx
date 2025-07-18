@@ -38,8 +38,18 @@ export function RoleProtectedRoute({
     );
   }
 
+  // If user account is pending approval, show pending page
+  if (profile.status === 'pending') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  // If user account is rejected, redirect to unauthorized
+  if (profile.status === 'rejected') {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
   // If user doesn't have the required role, redirect
-  if (!allowedRoles.includes(profile.role)) {
+  if (!allowedRoles.includes(profile.role) || profile.status !== 'approved') {
     return <Navigate to={redirectTo} replace />;
   }
 
