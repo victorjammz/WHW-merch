@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 // Mock order data
-const mockOrders = [
+const initialMockOrders = [
   {
     id: "ORD-001",
     customer: "John Smith",
@@ -58,14 +60,61 @@ const mockOrders = [
 ];
 
 const Orders = () => {
+  const [orders, setOrders] = useState(initialMockOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
+  const [newOrderForm, setNewOrderForm] = useState({
+    customer: "",
+    items: "",
+    total: "",
+    status: "pending",
+    paymentStatus: "pending"
+  });
   const { toast } = useToast();
 
+  const generateOrderId = () => {
+    const nextNumber = orders.length + 1;
+    return `ORD-${String(nextNumber).padStart(3, '0')}`;
+  };
+
   const handleNewOrder = () => {
+    setIsNewOrderOpen(true);
+  };
+
+  const handleCreateOrder = () => {
+    if (!newOrderForm.customer || !newOrderForm.items || !newOrderForm.total) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newOrder = {
+      id: generateOrderId(),
+      customer: newOrderForm.customer,
+      items: parseInt(newOrderForm.items),
+      total: parseFloat(newOrderForm.total),
+      status: newOrderForm.status,
+      date: new Date().toISOString().split('T')[0],
+      paymentStatus: newOrderForm.paymentStatus
+    };
+
+    setOrders([newOrder, ...orders]);
+    setNewOrderForm({
+      customer: "",
+      items: "",
+      total: "",
+      status: "pending",
+      paymentStatus: "pending"
+    });
+    setIsNewOrderOpen(false);
+    
     toast({
-      title: "New Order",
-      description: "New order form would open here",
+      title: "Order Created",
+      description: `Order ${newOrder.id} has been created successfully`,
     });
   };
 
@@ -102,17 +151,17 @@ const Orders = () => {
     });
   };
 
-  const filteredOrders = mockOrders.filter(order => {
+  const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.customer.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalOrders = mockOrders.length;
-  const pendingOrders = mockOrders.filter(o => o.status === "pending").length;
-  const completedOrders = mockOrders.filter(o => o.status === "completed").length;
-  const totalRevenue = mockOrders.filter(o => o.status !== "cancelled").reduce((sum, o) => sum + o.total, 0);
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === "pending").length;
+  const completedOrders = orders.filter(o => o.status === "completed").length;
+  const totalRevenue = orders.filter(o => o.status !== "cancelled").reduce((sum, o) => sum + o.total, 0);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -145,10 +194,101 @@ const Orders = () => {
             Track and manage customer orders
           </p>
         </div>
-        <Button onClick={handleNewOrder}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Order
-        </Button>
+        <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleNewOrder}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Order
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Create New Order</DialogTitle>
+              <DialogDescription>
+                Add a new order to the system. Fill in the customer details and order information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="customer" className="text-right">
+                  Customer *
+                </Label>
+                <Input
+                  id="customer"
+                  value={newOrderForm.customer}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, customer: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Customer name"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="items" className="text-right">
+                  Items *
+                </Label>
+                <Input
+                  id="items"
+                  type="number"
+                  value={newOrderForm.items}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, items: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Number of items"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="total" className="text-right">
+                  Total *
+                </Label>
+                <Input
+                  id="total"
+                  type="number"
+                  step="0.01"
+                  value={newOrderForm.total}
+                  onChange={(e) => setNewOrderForm({...newOrderForm, total: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Order total"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select value={newOrderForm.status} onValueChange={(value) => setNewOrderForm({...newOrderForm, status: value})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="payment" className="text-right">
+                  Payment
+                </Label>
+                <Select value={newOrderForm.paymentStatus} onValueChange={(value) => setNewOrderForm({...newOrderForm, paymentStatus: value})}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsNewOrderOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateOrder}>Create Order</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Cards */}
