@@ -637,69 +637,7 @@ const Orders = () => {
 
               {currentStep === 1 && (
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Full Name *
-                    </Label>
-                    <Input 
-                      id="name" 
-                      value={newOrderForm.name} 
-                      onChange={e => setNewOrderForm({
-                        ...newOrderForm,
-                        name: e.target.value
-                      })} 
-                      className="col-span-3" 
-                      placeholder="Customer full name" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">
-                      Email *
-                    </Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      value={newOrderForm.email} 
-                      onChange={e => setNewOrderForm({
-                        ...newOrderForm,
-                        email: e.target.value
-                      })} 
-                      className="col-span-3" 
-                      placeholder="customer@email.com" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="phone" className="text-right">
-                      Phone *
-                    </Label>
-                    <Input 
-                      id="phone" 
-                      value={newOrderForm.phone} 
-                      onChange={e => setNewOrderForm({
-                        ...newOrderForm,
-                        phone: e.target.value
-                      })} 
-                      className="col-span-3" 
-                      placeholder="+44 7911 123456" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="col-span-4">
-                      <PostcodeAutocomplete
-                        onAddressComplete={(address) => {
-                          setNewOrderForm({
-                            ...newOrderForm,
-                            address: address.address,
-                            city: address.city,
-                            country: address.country,
-                            postcode: address.postcode
-                          });
-                        }}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Event Selection */}
+                  {/* Event Selection - Moved to top and made compulsory */}
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="event" className="text-right">
                       Event *
@@ -779,6 +717,68 @@ const Orders = () => {
                           Default: {defaultEvent.name} (expires in {Math.round((defaultEventExpiry - Date.now()) / (1000 * 60 * 60))}h)
                         </p>
                       )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Full Name *
+                    </Label>
+                    <Input 
+                      id="name" 
+                      value={newOrderForm.name} 
+                      onChange={e => setNewOrderForm({
+                        ...newOrderForm,
+                        name: e.target.value
+                      })} 
+                      className="col-span-3" 
+                      placeholder="Customer full name" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email *
+                    </Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={newOrderForm.email} 
+                      onChange={e => setNewOrderForm({
+                        ...newOrderForm,
+                        email: e.target.value
+                      })} 
+                      className="col-span-3" 
+                      placeholder="customer@email.com" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone *
+                    </Label>
+                    <Input 
+                      id="phone" 
+                      value={newOrderForm.phone} 
+                      onChange={e => setNewOrderForm({
+                        ...newOrderForm,
+                        phone: e.target.value
+                      })} 
+                      className="col-span-3" 
+                      placeholder="+44 7911 123456" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="col-span-4">
+                      <PostcodeAutocomplete
+                        onAddressComplete={(address) => {
+                          setNewOrderForm({
+                            ...newOrderForm,
+                            address: address.address,
+                            city: address.city,
+                            country: address.country,
+                            postcode: address.postcode
+                          });
+                        }}
+                      />
                     </div>
                   </div>
 
