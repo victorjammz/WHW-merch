@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock customer data
 const mockCustomers = [
@@ -46,6 +47,28 @@ const mockCustomers = [
 
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
+
+  const handleAddCustomer = () => {
+    toast({
+      title: "Add Customer",
+      description: "New customer form would open here",
+    });
+  };
+
+  const handleViewCustomer = (customerId: string, customerName: string) => {
+    toast({
+      title: "View Customer",
+      description: `Opening details for ${customerName}`,
+    });
+  };
+
+  const handleEditCustomer = (customerId: string, customerName: string) => {
+    toast({
+      title: "Edit Customer",
+      description: `Opening edit form for ${customerName}`,
+    });
+  };
 
   const filteredCustomers = mockCustomers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,7 +89,7 @@ const Customers = () => {
             Manage your customer relationships and data
           </p>
         </div>
-        <Button>
+        <Button onClick={handleAddCustomer}>
           <Plus className="mr-2 h-4 w-4" />
           Add Customer
         </Button>
@@ -206,10 +229,10 @@ const Customers = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleViewCustomer(customer.id, customer.name)}>
                         View
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer.id, customer.name)}>
                         Edit
                       </Button>
                     </div>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock order data
 const mockOrders = [
@@ -59,6 +60,47 @@ const mockOrders = [
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const { toast } = useToast();
+
+  const handleNewOrder = () => {
+    toast({
+      title: "New Order",
+      description: "New order form would open here",
+    });
+  };
+
+  const handleExport = () => {
+    const csvContent = filteredOrders.map(order => 
+      `${order.id},${order.customer},${order.items},${order.total},${order.status},${order.paymentStatus},${order.date}`
+    ).join('\n');
+    
+    const blob = new Blob([`Order ID,Customer,Items,Total,Status,Payment,Date\n${csvContent}`], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'orders.csv';
+    link.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Complete",
+      description: "Orders exported to CSV file",
+    });
+  };
+
+  const handleViewOrder = (orderId: string) => {
+    toast({
+      title: "View Order",
+      description: `Opening order details for ${orderId}`,
+    });
+  };
+
+  const handleEditOrder = (orderId: string) => {
+    toast({
+      title: "Edit Order",
+      description: `Opening edit form for order ${orderId}`,
+    });
+  };
 
   const filteredOrders = mockOrders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -103,7 +145,7 @@ const Orders = () => {
             Track and manage customer orders
           </p>
         </div>
-        <Button>
+        <Button onClick={handleNewOrder}>
           <Plus className="mr-2 h-4 w-4" />
           New Order
         </Button>
@@ -193,7 +235,7 @@ const Orders = () => {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
@@ -247,10 +289,10 @@ const Orders = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleViewOrder(order.id)}>
                         View
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)}>
                         Edit
                       </Button>
                     </div>
