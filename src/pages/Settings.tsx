@@ -90,6 +90,31 @@ const Settings = () => {
       return;
     }
 
+    // Check for duplicate event name
+    const { data: existingEvent, error: checkError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('name', eventForm.name)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      toast({
+        title: "Error",
+        description: "Failed to check for duplicate events: " + checkError.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (existingEvent) {
+      toast({
+        title: "Error",
+        description: "An event with this name already exists",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('events')
