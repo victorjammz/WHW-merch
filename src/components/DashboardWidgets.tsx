@@ -187,13 +187,15 @@ export const DashboardWidgets = ({ inventoryData, pendingOrdersCount }: Dashboar
         className="layout"
         layouts={{ lg: layout }}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 10, md: 8, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={60}
+        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+        rowHeight={50}
         isDraggable={isEditMode}
         isResizable={isEditMode}
         onLayoutChange={(layout) => onLayoutChange(layout)}
-        margin={[16, 16]}
+        margin={[12, 12]}
         containerPadding={[0, 0]}
+        preventCollision={true}
+        compactType="vertical"
       >
         {enabledWidgets.map((widget) => (
           <div key={widget.id} className={isEditMode ? "border-2 border-dashed border-primary/50" : ""}>
