@@ -628,21 +628,15 @@ const Settings = () => {
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
                   <Select 
-                    value={settings?.currency || "USD"} 
+                    value={settings?.currency || "GBP"} 
                     onValueChange={(value) => updateSettings({ currency: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">USD ($) - US Dollar</SelectItem>
-                      <SelectItem value="EUR">EUR (€) - Euro</SelectItem>
                       <SelectItem value="GBP">GBP (£) - British Pound</SelectItem>
-                      <SelectItem value="CAD">CAD (C$) - Canadian Dollar</SelectItem>
-                      <SelectItem value="AUD">AUD (A$) - Australian Dollar</SelectItem>
-                      <SelectItem value="JPY">JPY (¥) - Japanese Yen</SelectItem>
-                      <SelectItem value="CNY">CNY (¥) - Chinese Yuan</SelectItem>
-                      <SelectItem value="INR">INR (₹) - Indian Rupee</SelectItem>
+                      <SelectItem value="EUR">EUR (€) - Euro</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

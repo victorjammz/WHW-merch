@@ -24,7 +24,7 @@ const initialOrders = [{
   id: "EO-001",
   name: "John Smith",
   email: "john.smith@email.com",
-  phone: "+1 (555) 123-4567",
+  phone: "+44 7911 123456",
   address: "123 Main St",
   postcode: "10001",
   items: [{
@@ -47,7 +47,7 @@ const initialOrders = [{
   id: "EO-002",
   name: "Sarah Johnson",
   email: "sarah.j@email.com",
-  phone: "+1 (555) 987-6543",
+  phone: "+353 87 123 4567",
   address: "456 Oak Avenue",
   postcode: "10002",
   items: [{
@@ -70,7 +70,7 @@ const initialOrders = [{
   id: "EO-003",
   name: "Mike Wilson",
   email: "mike.wilson@email.com",
-  phone: "+1 (555) 456-7890",
+  phone: "+44 20 7946 0958",
   address: "789 Pine Road",
   postcode: "10003",
   items: [{

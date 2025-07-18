@@ -54,7 +54,7 @@ export function AddressAutocomplete({
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
           query
-        )}&format=json&addressdetails=1&limit=5&countrycodes=us,gb,ca,au`
+        )}&format=json&addressdetails=1&limit=5&countrycodes=gb,ie`
       );
       
       if (response.ok) {
