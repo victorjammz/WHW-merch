@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, User, Settings, Shield, Menu } from "lucide-react";
+import { LogOut, User, Settings, Shield, Menu, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -59,15 +59,28 @@ export function Header() {
             <h1 className="text-base md:text-lg font-semibold truncate">Warehouse Worship CRM</h1>
           </div>
           
-          {/* Mobile Navigation Button - Only visible on mobile */}
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="md:hidden mr-2"
-            onClick={() => setIsMobileNavOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Notifications Button */}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="hidden md:flex"
+              onClick={() => navigate("/settings?tab=notifications")}
+              title="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            
+            {/* Mobile Navigation Button - Only visible on mobile */}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="md:hidden"
+              onClick={() => setIsMobileNavOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
           
           {/* Desktop Dropdown Menu - Hidden on mobile */}
           <DropdownMenu>

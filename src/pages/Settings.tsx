@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,15 @@ const Settings = () => {
   const { settings, isLoading, isSaving, updateSettings, uploadAvatar, deleteAvatar } = useUserSettings();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState("profile");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && ["profile", "notifications", "security", "regional", "appearance"].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -68,7 +78,7 @@ const Settings = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
           <TabsTrigger value="profile" className="text-xs md:text-sm p-2">Profile</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs md:text-sm p-2">Notifications</TabsTrigger>
