@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Upload, Image, Trash2, Camera, FolderOpen } from "lucide-react";
+import { X, Upload, Image, Trash2, Camera, FolderOpen, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,10 +11,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { cn } from "@/lib/utils";
 
 interface AddInventoryFormProps {
   onAdd: () => void;
@@ -35,9 +49,28 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [existingProductNames, setExistingProductNames] = useState<string[]>([]);
+  const [openCombobox, setOpenCombobox] = useState(false);
 
   const { toast } = useToast();
   const { getCurrencySymbol, currency } = useCurrency();
+
+  // Fetch existing product names for autocomplete
+  useEffect(() => {
+    const fetchProductNames = async () => {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('name')
+        .order('name');
+      
+      if (!error && data) {
+        const uniqueNames = [...new Set(data.map(item => item.name))];
+        setExistingProductNames(uniqueNames);
+      }
+    };
+    
+    fetchProductNames();
+  }, []);
 
   const categories = [
     "Shirts",
@@ -184,13 +217,53 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
         <div className="space-y-2">
           <Label htmlFor="name">Product Name *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-            placeholder="e.g., Classic Cotton T-Shirt"
-            required
-          />
+          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openCombobox}
+                className="w-full justify-between"
+              >
+                {formData.name || "e.g., Classic Cotton T-Shirt"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput 
+                  placeholder="Search products..." 
+                  value={formData.name}
+                  onValueChange={(value) => handleChange("name", value)}
+                />
+                <CommandList>
+                  <CommandEmpty>No product found.</CommandEmpty>
+                  <CommandGroup>
+                    {existingProductNames
+                      .filter(name => name.toLowerCase().includes(formData.name.toLowerCase()))
+                      .map((name) => (
+                        <CommandItem
+                          key={name}
+                          value={name}
+                          onSelect={(currentValue) => {
+                            handleChange("name", currentValue);
+                            setOpenCombobox(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.name === name ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {name}
+                        </CommandItem>
+                      ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <p className="text-xs text-muted-foreground">SKU will be automatically generated</p>
         </div>
 
