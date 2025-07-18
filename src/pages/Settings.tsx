@@ -49,6 +49,11 @@ const Settings = () => {
   const [isEditEventDialogOpen, setIsEditEventDialogOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [profileData, setProfileData] = useState({
+    first_name: '',
+    last_name: ''
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -64,6 +69,33 @@ const Settings = () => {
       fetchProfiles();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "profile") {
+      fetchUserProfile();
+    }
+  }, [activeTab, user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      setProfileData({
+        first_name: data?.first_name || '',
+        last_name: data?.last_name || ''
+      });
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const fetchCurrentUserRole = async () => {
     try {
@@ -434,6 +466,36 @@ const Settings = () => {
     reader.readAsText(file);
   };
 
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    
+    setIsSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: profileData.first_name,
+          last_name: profileData.last_name
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile: " + error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   const handleResetSettings = async () => {
     if (!window.confirm('Are you sure you want to reset all settings to default? This cannot be undone.')) {
       return;
@@ -546,6 +608,29 @@ const Settings = () => {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-sm">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={profileData.first_name}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, first_name: e.target.value }))}
+                      placeholder="Enter your first name"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-sm">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={profileData.last_name}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, last_name: e.target.value }))}
+                      placeholder="Enter your last name"
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm">Email Address</Label>
                     <Input
                       id="email"
@@ -591,6 +676,17 @@ const Settings = () => {
                     placeholder="Enter company address"
                     className="min-h-[80px]"
                   />
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <Button 
+                    onClick={handleSaveProfile} 
+                    disabled={isSavingProfile}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSavingProfile ? "Saving..." : "Save Profile"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
