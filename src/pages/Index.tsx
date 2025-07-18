@@ -10,6 +10,7 @@ import { POSConnectionCard } from "@/components/POSConnectionCard";
 import { BarcodeGenerator } from "@/components/BarcodeGenerator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface InventoryItem {
   id: string;
@@ -35,6 +36,7 @@ const Index = () => {
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { formatPrice } = useCurrency();
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -120,7 +122,7 @@ const Index = () => {
               <TrendingUp className="h-5 w-5 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">${stats.totalValue.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatPrice(stats.totalValue)}</div>
               <p className="text-xs text-muted-foreground mt-1">+12% from last month</p>
             </CardContent>
           </Card>

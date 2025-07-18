@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // Mock order data
 const initialMockOrders = [
@@ -72,6 +73,7 @@ const Orders = () => {
     paymentStatus: "pending"
   });
   const { toast } = useToast();
+  const { formatPrice, currency } = useCurrency();
 
   const generateOrderId = () => {
     const nextNumber = orders.length + 1;
@@ -236,7 +238,7 @@ const Orders = () => {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="total" className="text-right">
-                  Total *
+                  Total ({currency}) *
                 </Label>
                 <Input
                   id="total"
@@ -245,7 +247,7 @@ const Orders = () => {
                   value={newOrderForm.total}
                   onChange={(e) => setNewOrderForm({...newOrderForm, total: e.target.value})}
                   className="col-span-3"
-                  placeholder="Order total"
+                  placeholder={`Order total in ${currency}`}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -334,7 +336,7 @@ const Orders = () => {
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
               From completed orders
             </p>
@@ -409,7 +411,7 @@ const Orders = () => {
                     <div>{order.items} items</div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">${order.total.toFixed(2)}</div>
+                    <div className="font-medium">{formatPrice(order.total)}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">

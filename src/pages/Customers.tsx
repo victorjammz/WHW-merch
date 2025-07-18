@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // Mock customer data
 const mockCustomers = [
@@ -48,6 +49,7 @@ const mockCustomers = [
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  const { formatPrice } = useCurrency();
 
   const handleAddCustomer = () => {
     toast({
@@ -124,7 +126,7 @@ const Customers = () => {
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
               From all customers
             </p>
@@ -135,7 +137,7 @@ const Customers = () => {
             <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${avgOrderValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatPrice(avgOrderValue)}</div>
             <p className="text-xs text-muted-foreground">
               Per order
             </p>
@@ -212,7 +214,7 @@ const Customers = () => {
                     <div className="font-medium">{customer.orders}</div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">${customer.totalSpent.toFixed(2)}</div>
+                    <div className="font-medium">{formatPrice(customer.totalSpent)}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center text-sm">

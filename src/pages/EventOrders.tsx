@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // Mock event order data with detailed items
 const initialEventOrders = [
@@ -122,6 +123,7 @@ const EventOrders = () => {
     payment: "pending"
   });
   const { toast } = useToast();
+  const { formatPrice } = useCurrency();
 
   // Fetch inventory items and categories when dialog opens
   useEffect(() => {
@@ -561,7 +563,7 @@ const EventOrders = () => {
                       <SelectContent className="bg-background border z-50">
                         {filteredProducts.map((product) => (
                           <SelectItem key={product.id} value={product.name}>
-                            {product.name} - ${product.price}
+                            {product.name} - {formatPrice(product.price)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -822,7 +824,7 @@ const EventOrders = () => {
                     <div className="text-sm max-w-[200px] truncate">{formatItemsDisplay(order.items)}</div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm font-semibold">${calculateOrderTotal(order.items).toFixed(2)}</div>
+                    <div className="text-sm font-semibold">{formatPrice(calculateOrderTotal(order.items))}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">
@@ -909,7 +911,7 @@ const EventOrders = () => {
                       <div key={index} className="text-sm border rounded p-2">
                         <div className="font-medium">{item.name}</div>
                         <div className="text-xs text-muted-foreground">
-                          Quantity: {item.quantity} × ${item.price.toFixed(2)} = ${(item.quantity * item.price).toFixed(2)}
+                          Quantity: {item.quantity} × {formatPrice(item.price)} = {formatPrice(item.quantity * item.price)}
                         </div>
                       </div>
                     ))
@@ -918,7 +920,7 @@ const EventOrders = () => {
                   )}
                   {Array.isArray(selectedOrder.items) && (
                     <div className="text-sm font-semibold border-t pt-2">
-                      Total: ${calculateOrderTotal(selectedOrder.items).toFixed(2)}
+                      Total: {formatPrice(calculateOrderTotal(selectedOrder.items))}
                     </div>
                   )}
                 </div>
@@ -1054,7 +1056,7 @@ const EventOrders = () => {
                   <SelectContent className="bg-background border z-50">
                     {inventoryItems.filter(item => item.category === editOrderForm.category).map((product) => (
                       <SelectItem key={product.id} value={product.name}>
-                        {product.name} - ${product.price}
+                        {product.name} - {formatPrice(product.price)}
                       </SelectItem>
                     ))}
                   </SelectContent>
