@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -63,6 +63,19 @@ const EventOrders = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [isItemsPopoverOpen, setIsItemsPopoverOpen] = useState(false);
+  const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
+  const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [editOrderForm, setEditOrderForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    postcode: "",
+    items: "",
+    status: "pending",
+    payment: "pending"
+  });
   const [newOrderForm, setNewOrderForm] = useState({
     name: "",
     email: "",
@@ -214,16 +227,75 @@ const EventOrders = () => {
   };
 
   const handleViewOrder = (orderId: string) => {
-    toast({
-      title: "View Event Order",
-      description: `Opening order details for ${orderId}`,
-    });
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setSelectedOrder(order);
+      setIsViewOrderOpen(true);
+    }
   };
 
   const handleEditOrder = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setSelectedOrder(order);
+      setEditOrderForm({
+        name: order.name,
+        email: order.email,
+        phone: order.phone,
+        address: order.address,
+        postcode: order.postcode,
+        items: order.items,
+        status: order.status,
+        payment: order.payment
+      });
+      setIsEditOrderOpen(true);
+      fetchInventoryItems();
+    }
+  };
+
+  const handleUpdateOrder = () => {
+    if (!editOrderForm.name || !editOrderForm.email || !editOrderForm.phone || !editOrderForm.address || !editOrderForm.postcode || !editOrderForm.items) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const updatedOrders = orders.map(order => 
+      order.id === selectedOrder.id 
+        ? {
+            ...order,
+            name: editOrderForm.name,
+            email: editOrderForm.email,
+            phone: editOrderForm.phone,
+            address: editOrderForm.address,
+            postcode: editOrderForm.postcode,
+            items: editOrderForm.items,
+            status: editOrderForm.status,
+            payment: editOrderForm.payment
+          }
+        : order
+    );
+
+    setOrders(updatedOrders);
+    setIsEditOrderOpen(false);
+    setSelectedOrder(null);
+    setEditOrderForm({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      postcode: "",
+      items: "",
+      status: "pending",
+      payment: "pending"
+    });
+
     toast({
-      title: "Edit Event Order",
-      description: `Opening edit form for order ${orderId}`,
+      title: "Order Updated",
+      description: `Order ${selectedOrder.id} has been updated successfully`,
     });
   };
 
@@ -647,6 +719,248 @@ const EventOrders = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View Order Dialog */}
+      <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Order Details - {selectedOrder?.id}
+            </DialogTitle>
+            <DialogDescription>
+              View complete order information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Customer Name</Label>
+                  <p className="text-sm font-medium">{selectedOrder.name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Order Date</Label>
+                  <p className="text-sm">{selectedOrder.date}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                  <p className="text-sm">{selectedOrder.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
+                  <p className="text-sm">{selectedOrder.phone}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Address</Label>
+                  <p className="text-sm">{selectedOrder.address}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Postcode</Label>
+                  <p className="text-sm">{selectedOrder.postcode}</p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Items</Label>
+                <p className="text-sm">{selectedOrder.items}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Badge variant={getStatusVariant(selectedOrder.status)} className="flex items-center gap-1 w-fit">
+                    {getStatusIcon(selectedOrder.status)}
+                    {selectedOrder.status.replace('_', ' ')}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Payment</Label>
+                  <Badge 
+                    variant={selectedOrder.payment === "paid" ? "default" : selectedOrder.payment === "pending" ? "secondary" : "destructive"}
+                  >
+                    {selectedOrder.payment}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewOrderOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Order Dialog */}
+      <Dialog open={isEditOrderOpen} onOpenChange={setIsEditOrderOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Order - {selectedOrder?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Update order information and details
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-name" className="text-right">
+                Full Name *
+              </Label>
+              <Input
+                id="edit-name"
+                value={editOrderForm.name}
+                onChange={(e) => setEditOrderForm({...editOrderForm, name: e.target.value})}
+                className="col-span-3"
+                placeholder="Customer full name"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-email" className="text-right">
+                Email *
+              </Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editOrderForm.email}
+                onChange={(e) => setEditOrderForm({...editOrderForm, email: e.target.value})}
+                className="col-span-3"
+                placeholder="customer@email.com"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-phone" className="text-right">
+                Phone *
+              </Label>
+              <Input
+                id="edit-phone"
+                value={editOrderForm.phone}
+                onChange={(e) => setEditOrderForm({...editOrderForm, phone: e.target.value})}
+                className="col-span-3"
+                placeholder="+1 (555) 123-4567"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-address" className="text-right">
+                Address *
+              </Label>
+              <Input
+                id="edit-address"
+                value={editOrderForm.address}
+                onChange={(e) => setEditOrderForm({...editOrderForm, address: e.target.value})}
+                className="col-span-3"
+                placeholder="Street address"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-postcode" className="text-right">
+                Postcode *
+              </Label>
+              <Input
+                id="edit-postcode"
+                value={editOrderForm.postcode}
+                onChange={(e) => setEditOrderForm({...editOrderForm, postcode: e.target.value})}
+                className="col-span-3"
+                placeholder="12345"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-items" className="text-right">
+                Items *
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="col-span-3 justify-between"
+                  >
+                    {editOrderForm.items || "Search and select items from inventory..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search inventory items..." />
+                    <CommandList>
+                      <CommandEmpty>No inventory items found.</CommandEmpty>
+                      <CommandGroup>
+                        {inventoryItems.map((item) => (
+                          <CommandItem
+                            key={item.id}
+                            value={item.name}
+                            onSelect={(currentValue) => {
+                              setEditOrderForm({...editOrderForm, items: currentValue});
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                editOrderForm.items === item.name ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{item.name}</span>
+                              <span className="text-sm text-muted-foreground">
+                                ${item.price} • Stock: {item.quantity} • SKU: {item.sku}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-status" className="text-right">
+                Status *
+              </Label>
+              <Select value={editOrderForm.status} onValueChange={(value) => setEditOrderForm({...editOrderForm, status: value})}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-payment" className="text-right">
+                Payment *
+              </Label>
+              <Select value={editOrderForm.payment} onValueChange={(value) => setEditOrderForm({...editOrderForm, payment: value})}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOrderOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateOrder}>
+              Update Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
