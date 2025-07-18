@@ -44,7 +44,7 @@ const navigationItems: NavigationItem[] = [
   },
   { title: "Customers", url: "/customers", icon: Users },
   
-  { title: "Event Orders", url: "/event-orders", icon: Calendar },
+  { title: "Orders", url: "/orders", icon: ShoppingCart },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
   { title: "Barcodes", url: "/barcodes", icon: QrCode },
   { title: "Reports", url: "/reports", icon: FileText },

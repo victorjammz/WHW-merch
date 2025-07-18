@@ -19,7 +19,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const Customers = lazy(() => import("./pages/Customers"));
 
-const EventOrders = lazy(() => import("./pages/EventOrders"));
+const Orders = lazy(() => import("./pages/Orders"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Barcodes = lazy(() => import("./pages/Barcodes"));
 const Reports = lazy(() => import("./pages/Reports"));
@@ -99,7 +99,7 @@ const AppRoutes = () => {
                         {/* Routes accessible by both roles */}
                         <Route path="/customers" element={<Customers />} />
                         
-                        <Route path="/event-orders" element={<EventOrders />} />
+                        <Route path="/orders" element={<Orders />} />
                         <Route path="/analytics" element={<Analytics />} />
                         <Route path="/barcodes" element={<Barcodes />} />
                         <Route path="/reports" element={<Reports />} />

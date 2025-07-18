@@ -19,7 +19,7 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 
 // Mock event order data with detailed items
-const initialEventOrders = [
+const initialOrders = [
   {
     id: "EO-001",
     name: "John Smith",
@@ -83,8 +83,8 @@ const formatItemsDisplay = (items: any[]) => {
   return `${items.length} items`;
 };
 
-const EventOrders = () => {
-  const [orders, setOrders] = useState(initialEventOrders);
+const Orders = () => {
+  const [orders, setOrders] = useState(initialOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
@@ -379,8 +379,8 @@ const EventOrders = () => {
     handleCloseDialog();
     
     toast({
-      title: "Event Order Created",
-      description: `Event order ${newOrder.id} has been created successfully`,
+      title: "Order Created",
+      description: `Order ${newOrder.id} has been created successfully`,
     });
   };
 
@@ -393,13 +393,13 @@ const EventOrders = () => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'event-orders.csv';
+    link.download = 'orders.csv';
     link.click();
     window.URL.revokeObjectURL(url);
     
     toast({
       title: "Export Complete",
-      description: "Event orders exported to CSV file",
+      description: "Orders exported to CSV file",
     });
   };
 
@@ -528,24 +528,24 @@ const EventOrders = () => {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Event Orders</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
           <p className="text-muted-foreground">
-            Manage event bookings and special orders
+            Manage orders and special requests
           </p>
         </div>
         <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
           <DialogTrigger asChild>
             <Button onClick={handleNewOrder}>
               <Plus className="mr-2 h-4 w-4" />
-              New Event Order
+              New Order
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Event Order - Step {currentStep} of 2</DialogTitle>
+              <DialogTitle>Create New Order - Step {currentStep} of 2</DialogTitle>
               <DialogDescription>
                 {currentStep === 1 
-                  ? "Enter customer details and select items for the event order."
+                  ? "Enter customer details and select items for the order."
                   : "Set the order status and payment information."
                 }
               </DialogDescription>
@@ -837,7 +837,7 @@ const EventOrders = () => {
           <CardContent>
             <div className="text-2xl font-bold">{totalOrders}</div>
             <p className="text-xs text-muted-foreground">
-              All event orders
+              All orders
             </p>
           </CardContent>
         </Card>
@@ -884,9 +884,9 @@ const EventOrders = () => {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Event Orders</CardTitle>
+              <CardTitle>Orders</CardTitle>
               <CardDescription>
-                View and manage all event bookings and special orders
+                View and manage all orders and special requests
               </CardDescription>
             </div>
             <div className="flex gap-4">
@@ -1296,4 +1296,4 @@ const EventOrders = () => {
   );
 };
 
-export default EventOrders;
+export default Orders;
