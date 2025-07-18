@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette } from "lucide-react";
+import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +13,23 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
   const { user } = useAuth();
   const { settings, isLoading, isSaving, updateSettings, uploadAvatar, deleteAvatar } = useUserSettings();
+  const { toast } = useToast();
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("profile");
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -59,6 +68,141 @@ const Settings = () => {
       return user.email.split('@')[0].charAt(0).toUpperCase();
     }
     return "U";
+  };
+
+  const handlePasswordChange = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all password fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Password changed successfully"
+      });
+      
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to change password: " + error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleExportSettings = () => {
+    if (!settings) return;
+    
+    const settingsToExport = {
+      ...settings,
+      user_id: undefined,
+      id: undefined,
+      created_at: undefined,
+      updated_at: undefined
+    };
+    
+    const dataStr = JSON.stringify(settingsToExport, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'settings-export.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Settings exported",
+      description: "Your settings have been exported successfully"
+    });
+  };
+
+  const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const importedSettings = JSON.parse(e.target?.result as string);
+        await updateSettings(importedSettings);
+        toast({
+          title: "Settings imported",
+          description: "Your settings have been imported successfully"
+        });
+      } catch (error) {
+        toast({
+          title: "Import failed",
+          description: "Failed to import settings. Please check the file format.",
+          variant: "destructive"
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleResetSettings = async () => {
+    if (!window.confirm('Are you sure you want to reset all settings to default? This cannot be undone.')) {
+      return;
+    }
+
+    const defaultSettings = {
+      company_name: 'Warehouse Worship',
+      email_notifications: true,
+      sms_notifications: false,
+      push_notifications: true,
+      low_stock_alerts: true,
+      order_updates: true,
+      currency: 'USD',
+      timezone: 'America/New_York',
+      language: 'en',
+      date_format: 'MM/dd/yyyy',
+      two_factor_auth: false,
+      session_timeout: 30,
+      password_expiry: 90,
+      theme: 'light',
+      sidebar_collapsed: false
+    };
+
+    await updateSettings(defaultSettings);
   };
 
   if (isLoading) {
@@ -348,6 +492,118 @@ const Settings = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <Separator />
+
+              {/* Password Change Section */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Change Password
+                </h4>
+                
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                  
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                        placeholder="Enter new password"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        placeholder="Confirm new password"
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handlePasswordChange} 
+                    disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                    className="w-fit"
+                  >
+                    {isChangingPassword ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Changing Password...
+                      </>
+                    ) : (
+                      <>
+                        <Key className="mr-2 h-4 w-4" />
+                        Change Password
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Settings Management */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Settings Management</h4>
+                
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleExportSettings}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export Settings
+                  </Button>
+                  
+                  <label htmlFor="import-settings" className="cursor-pointer">
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <UploadIcon className="h-4 w-4" />
+                      Import Settings
+                    </Button>
+                    <input
+                      id="import-settings"
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportSettings}
+                      className="hidden"
+                    />
+                  </label>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleResetSettings}
+                    className="flex items-center gap-2 text-destructive"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Reset to Default
+                  </Button>
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Export your settings as a backup, import previous settings, or reset to default values.
+                </p>
               </div>
             </CardContent>
           </Card>

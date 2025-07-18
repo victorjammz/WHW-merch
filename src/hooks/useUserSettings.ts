@@ -139,6 +139,18 @@ export const useUserSettings = () => {
       if (error) throw error;
 
       setSettings(data);
+      
+      // Apply theme changes immediately
+      if (newSettings.theme) {
+        applyTheme(newSettings.theme);
+      }
+      
+      // Apply sidebar collapse setting
+      if (newSettings.sidebar_collapsed !== undefined) {
+        // Trigger sidebar state change - this will be handled by the app state
+        document.body.setAttribute('data-sidebar-collapsed', newSettings.sidebar_collapsed.toString());
+      }
+      
       toast({
         title: "Settings saved",
         description: "Your settings have been updated successfully.",
@@ -152,6 +164,25 @@ export const useUserSettings = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Apply theme to document
+  const applyTheme = (theme: string) => {
+    const root = document.documentElement;
+    
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else if (theme === 'light') {
+      root.classList.remove('dark');
+    } else if (theme === 'auto') {
+      // Auto theme - follow system preference
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      if (mediaQuery.matches) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
     }
   };
 
@@ -223,6 +254,22 @@ export const useUserSettings = () => {
       fetchSettings();
     }
   }, [user]);
+
+  // Apply theme when settings change
+  useEffect(() => {
+    if (settings?.theme) {
+      applyTheme(settings.theme);
+      
+      // Listen for system theme changes if auto theme is selected
+      if (settings.theme === 'auto') {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = () => applyTheme('auto');
+        mediaQuery.addEventListener('change', handleChange);
+        
+        return () => mediaQuery.removeEventListener('change', handleChange);
+      }
+    }
+  }, [settings?.theme]);
 
   return {
     settings,
