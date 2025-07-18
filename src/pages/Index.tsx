@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Package, ShoppingCart, TrendingUp, AlertTriangle, QrCode } from "lucide-react";
+import { Plus, Package, ShoppingCart, TrendingUp, AlertTriangle, QrCode, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +32,9 @@ const getStockStatus = (quantity: number): "low" | "medium" | "high" => {
 const Index = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [inventoryData, setInventoryData] = useState<InventoryItem[]>([]);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -54,7 +57,22 @@ const Index = () => {
       })));
     };
 
+    const fetchPendingOrders = async () => {
+      const { count, error } = await supabase
+        .from('event_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      
+      if (error) {
+        console.error('Error fetching pending orders:', error);
+        return;
+      }
+
+      setPendingOrdersCount(count || 0);
+    };
+
     fetchInventory();
+    fetchPendingOrders();
   }, [toast]);
 
   const stats = {
@@ -92,7 +110,7 @@ const Index = () => {
       </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
           <Card className="shadow-card border-l-4 border-l-primary">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Inventory</CardTitle>
@@ -134,6 +152,20 @@ const Index = () => {
             <CardContent>
               <div className="text-3xl font-bold text-warning">{stats.lowStockItems}</div>
               <p className="text-xs text-muted-foreground mt-1">Need immediate attention</p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="shadow-card border-l-4 border-l-info cursor-pointer hover:shadow-lg transition-shadow" 
+            onClick={() => navigate('/event-orders')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Orders</CardTitle>
+              <Calendar className="h-5 w-5 text-info" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground">{pendingOrdersCount}</div>
+              <p className="text-xs text-muted-foreground mt-1">Click to view orders</p>
             </CardContent>
           </Card>
         </div>
