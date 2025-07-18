@@ -15,16 +15,38 @@ export const useBarcodeScanner = () => {
 
   const checkPermission = async (): Promise<boolean> => {
     try {
+      // Check if the browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Browser does not support camera access');
+      }
+
       // For web-based scanner, we check if camera is available
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment' // Try to use back camera first
+        } 
+      });
       stream.getTracks().forEach(track => track.stop());
       setHasPermission(true);
+      console.log('Camera permission granted');
       return true;
     } catch (error) {
       console.error('Permission check failed:', error);
+      let errorMessage = "Please enable camera access to use barcode scanning";
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Camera access was denied. Please allow camera access and try again.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "No camera found on this device.";
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = "Camera access is not supported in this browser.";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = "Camera is already in use by another application.";
+      }
+      
       toast({
-        title: "Camera permission denied",
-        description: "Please enable camera access to use barcode scanning",
+        title: "Camera permission failed",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;
