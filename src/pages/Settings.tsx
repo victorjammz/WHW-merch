@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw, Calendar, MapPin, Plus } from "lucide-react";
+import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw, Calendar, MapPin, Plus, Edit, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,10 @@ const Settings = () => {
   });
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [isEditEventDialogOpen, setIsEditEventDialogOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
+  const [profiles, setProfiles] = useState<any[]>([]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -56,8 +60,38 @@ const Settings = () => {
   useEffect(() => {
     if (activeTab === "events") {
       fetchEvents();
+      fetchCurrentUserRole();
+      fetchProfiles();
     }
   }, [activeTab]);
+
+  const fetchCurrentUserRole = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id)
+        .single();
+      
+      if (error) throw error;
+      setCurrentUserRole(data?.role || '');
+    } catch (error: any) {
+      console.error('Error fetching user role:', error);
+    }
+  };
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email');
+      
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error: any) {
+      console.error('Error fetching profiles:', error);
+    }
+  };
 
   const fetchEvents = async () => {
     setIsLoadingEvents(true);
@@ -143,6 +177,120 @@ const Settings = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleEditEvent = (event: any) => {
+    setEditingEvent(event);
+    setEventForm({
+      name: event.name,
+      location: event.location,
+      event_date: new Date(event.event_date)
+    });
+    setIsEditEventDialogOpen(true);
+  };
+
+  const handleUpdateEvent = async () => {
+    if (!eventForm.name || !eventForm.location || !eventForm.event_date || !editingEvent) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check for duplicate event name (excluding current event)
+    const { data: existingEvent, error: checkError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('name', eventForm.name)
+      .neq('id', editingEvent.id)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      toast({
+        title: "Error",
+        description: "Failed to check for duplicate events: " + checkError.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (existingEvent) {
+      toast({
+        title: "Error",
+        description: "An event with this name already exists",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({
+          name: eventForm.name,
+          location: eventForm.location,
+          event_date: eventForm.event_date.toISOString().split('T')[0]
+        })
+        .eq('id', editingEvent.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Event updated successfully"
+      });
+
+      setEventForm({ name: '', location: '', event_date: undefined });
+      setIsEditEventDialogOpen(false);
+      setEditingEvent(null);
+      fetchEvents();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update event: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Event deleted successfully"
+      });
+
+      fetchEvents();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to delete event: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getCreatorName = (createdBy: string) => {
+    const profile = profiles.find(p => p.id === createdBy);
+    if (profile) {
+      return profile.first_name && profile.last_name 
+        ? `${profile.first_name} ${profile.last_name}`
+        : profile.email;
+    }
+    return 'Unknown';
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -978,7 +1126,35 @@ const Settings = () => {
                                 <Calendar className="h-3 w-3" />
                                 {format(new Date(event.event_date), "PPP")}
                               </div>
+                              {currentUserRole === 'admin' && (
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  Created by: {getCreatorName(event.created_by)}
+                                </div>
+                              )}
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {(currentUserRole === 'admin' || event.created_by === user?.id) && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditEvent(event)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </Card>
@@ -986,6 +1162,76 @@ const Settings = () => {
                   </div>
                 )}
               </div>
+
+              {/* Edit Event Dialog */}
+              <Dialog open={isEditEventDialogOpen} onOpenChange={setIsEditEventDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Event</DialogTitle>
+                    <DialogDescription>
+                      Update the event details below
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editEventName">Event Name</Label>
+                      <Input
+                        id="editEventName"
+                        value={eventForm.name}
+                        onChange={(e) => setEventForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter event name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editEventLocation">Location</Label>
+                      <Input
+                        id="editEventLocation"
+                        value={eventForm.location}
+                        onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="Enter event location"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Event Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !eventForm.event_date && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {eventForm.event_date ? format(eventForm.event_date, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={eventForm.event_date}
+                            onSelect={(date) => setEventForm(prev => ({ ...prev, event_date: date }))}
+                            className="p-3 pointer-events-auto"
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setIsEditEventDialogOpen(false);
+                      setEditingEvent(null);
+                      setEventForm({ name: '', location: '', event_date: undefined });
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleUpdateEvent}>
+                      Update Event
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </TabsContent>
