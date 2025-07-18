@@ -10,33 +10,56 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { PageLoader } from "@/components/PageLoader";
 
-// Pages
-import Index from "./pages/Index";
-import Inventory from "./pages/Inventory";
-import Customers from "./pages/Customers";
-import Orders from "./pages/Orders";
-import EventOrders from "./pages/EventOrders";
-import Analytics from "./pages/Analytics";
-import Barcodes from "./pages/Barcodes";
-import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
-import UserManagement from "./pages/UserManagement";
-import RoleManagement from "./pages/RoleManagement";
-import Auth from "./pages/Auth";
-import Unauthorized from "./pages/Unauthorized";
-import PendingApproval from "./pages/PendingApproval";
+// Lazy load pages for better performance
+import { lazy, Suspense } from "react";
 
-const queryClient = new QueryClient();
+const Index = lazy(() => import("./pages/Index"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const Customers = lazy(() => import("./pages/Customers"));
+const Orders = lazy(() => import("./pages/Orders"));
+const EventOrders = lazy(() => import("./pages/EventOrders"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Barcodes = lazy(() => import("./pages/Barcodes"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Settings = lazy(() => import("./pages/Settings"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const RoleManagement = lazy(() => import("./pages/RoleManagement"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Unauthorized = lazy(() => import("./pages/Unauthorized"));
+const PendingApproval = lazy(() => import("./pages/PendingApproval"));
+
+// Optimized QueryClient for better performance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Reduce network requests with longer cache times
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      // Retry configuration
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors (client errors)
+        if (error?.message?.includes('4')) return false;
+        // Only retry up to 2 times for server errors
+        return failureCount < 2;
+      },
+      // Performance optimizations
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+    },
+  },
+});
 
 const AppRoutes = () => {
   const { profile, isAdmin } = useAuth();
 
   return (
-    <Routes>
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="/pending-approval" element={<PendingApproval />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/pending-approval" element={<PendingApproval />} />
       <Route
         path="/*"
         element={
@@ -48,6 +71,7 @@ const AppRoutes = () => {
                   <div className="flex-1 flex flex-col min-w-0 h-full">
                     <Header />
                     <main className="flex-1 overflow-y-auto p-4 md:p-6 h-0">
+                      <Suspense fallback={<PageLoader />}>
                       <Routes>
                         <Route path="/" element={<Index />} />
                         
@@ -82,7 +106,8 @@ const AppRoutes = () => {
                         <Route path="/settings" element={<Settings />} />
                         
                         <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
+                        </Routes>
+                      </Suspense>
                     </main>
                   </div>
                 </div>
@@ -91,7 +116,8 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 };
 
