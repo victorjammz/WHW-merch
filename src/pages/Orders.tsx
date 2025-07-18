@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit } from "lucide-react";
-import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -123,6 +123,8 @@ const Orders = () => {
     email: "",
     phone: "",
     address: "",
+    city: "",
+    country: "",
     postcode: "",
     category: "",
     product: "",
@@ -136,6 +138,8 @@ const Orders = () => {
     email: "",
     phone: "",
     address: "",
+    city: "",
+    country: "",
     postcode: "",
     status: "pending",
     payment: "pending"
@@ -260,6 +264,8 @@ const Orders = () => {
       email: "",
       phone: "",
       address: "",
+      city: "",
+      country: "",
       postcode: "",
       status: "pending",
       payment: "pending"
@@ -274,7 +280,7 @@ const Orders = () => {
     });
   };
   const validateStep1 = () => {
-    return newOrderForm.name && newOrderForm.email && newOrderForm.phone && newOrderForm.address && newOrderForm.postcode && orderItems.length > 0;
+    return newOrderForm.name && newOrderForm.email && newOrderForm.phone && newOrderForm.address && newOrderForm.city && newOrderForm.postcode && orderItems.length > 0;
   };
   const validateCurrentItem = () => {
     const product = inventoryItems.find(item => item.name === currentItem.product);
@@ -366,7 +372,7 @@ const Orders = () => {
       name: newOrderForm.name,
       email: newOrderForm.email,
       phone: newOrderForm.phone,
-      address: newOrderForm.address,
+      address: `${newOrderForm.address}, ${newOrderForm.city}, ${newOrderForm.country}`,
       postcode: newOrderForm.postcode,
       items: orderItemsFormatted,
       status: newOrderForm.status,
@@ -420,6 +426,8 @@ const Orders = () => {
         email: order.email,
         phone: order.phone,
         address: order.address,
+        city: "",
+        country: "",
         postcode: order.postcode,
         category: "",
         // We'll need to determine this from the product
@@ -434,7 +442,7 @@ const Orders = () => {
     }
   };
   const handleUpdateOrder = () => {
-    if (!editOrderForm.name || !editOrderForm.email || !editOrderForm.phone || !editOrderForm.address || !editOrderForm.postcode || !editOrderForm.category || !editOrderForm.product) {
+    if (!editOrderForm.name || !editOrderForm.email || !editOrderForm.phone || !editOrderForm.address || !editOrderForm.city || !editOrderForm.postcode || !editOrderForm.category || !editOrderForm.product) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -447,11 +455,11 @@ const Orders = () => {
     const itemsDescription = `${editOrderForm.product}${editOrderForm.size ? ` - ${editOrderForm.size}` : ''}${editOrderForm.color ? ` - ${editOrderForm.color}` : ''}`;
     const updatedOrders = orders.map(order => order.id === selectedOrder.id ? {
       ...order,
-      name: editOrderForm.name,
-      email: editOrderForm.email,
-      phone: editOrderForm.phone,
-      address: editOrderForm.address,
-      postcode: editOrderForm.postcode,
+        name: editOrderForm.name,
+        email: editOrderForm.email,
+        phone: editOrderForm.phone,
+        address: `${editOrderForm.address}, ${editOrderForm.city}, ${editOrderForm.country}`,
+        postcode: editOrderForm.postcode,
       items: [{
         name: itemsDescription,
         quantity: 1,
@@ -469,6 +477,8 @@ const Orders = () => {
       email: "",
       phone: "",
       address: "",
+      city: "",
+      country: "",
       postcode: "",
       category: "",
       product: "",
@@ -575,44 +585,20 @@ const Orders = () => {
                   phone: e.target.value
                 })} className="col-span-3" placeholder="+1 (555) 123-4567" />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="address" className="text-right">
-                    Address *
-                  </Label>
-                  <div className="col-span-3">
-                    <AddressAutocomplete
-                      id="address"
-                      value={newOrderForm.address}
-                      onChange={(value) => setNewOrderForm({
-                        ...newOrderForm,
-                        address: value
-                      })}
-                      onAddressSelect={(suggestion) => {
-                        const formattedAddress = [
-                          suggestion.address.house_number,
-                          suggestion.address.road,
-                          suggestion.address.suburb,
-                          suggestion.address.city
-                        ].filter(Boolean).join(", ");
-                        
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="col-span-4">
+                    <PostcodeAutocomplete
+                      onAddressComplete={(address) => {
                         setNewOrderForm({
                           ...newOrderForm,
-                          address: formattedAddress,
-                          postcode: suggestion.address.postcode || newOrderForm.postcode
+                          address: address.address,
+                          city: address.city,
+                          country: address.country,
+                          postcode: address.postcode
                         });
                       }}
-                      placeholder="Start typing an address..."
                     />
                   </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="postcode" className="text-right">
-                    Postcode *
-                  </Label>
-                  <Input id="postcode" value={newOrderForm.postcode} onChange={e => setNewOrderForm({
-                  ...newOrderForm,
-                  postcode: e.target.value
-                })} className="col-span-3" placeholder="12345" />
                 </div>
                 {/* Add Items Section */}
                 <div className="border rounded-lg p-4 space-y-4">
@@ -1102,44 +1088,20 @@ const Orders = () => {
               phone: e.target.value
             })} className="col-span-3" placeholder="+1 (555) 123-4567" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-address" className="text-right">
-                Address *
-              </Label>
-              <div className="col-span-3">
-                <AddressAutocomplete
-                  id="edit-address"
-                  value={editOrderForm.address}
-                  onChange={(value) => setEditOrderForm({
-                    ...editOrderForm,
-                    address: value
-                  })}
-                  onAddressSelect={(suggestion) => {
-                    const formattedAddress = [
-                      suggestion.address.house_number,
-                      suggestion.address.road,
-                      suggestion.address.suburb,
-                      suggestion.address.city
-                    ].filter(Boolean).join(", ");
-                    
+            <div className="grid grid-cols-1 gap-4">
+              <div className="col-span-4">
+                <PostcodeAutocomplete
+                  onAddressComplete={(address) => {
                     setEditOrderForm({
                       ...editOrderForm,
-                      address: formattedAddress,
-                      postcode: suggestion.address.postcode || editOrderForm.postcode
+                      address: address.address,
+                      city: address.city,
+                      country: address.country,
+                      postcode: address.postcode
                     });
                   }}
-                  placeholder="Start typing an address..."
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-postcode" className="text-right">
-                Postcode *
-              </Label>
-              <Input id="edit-postcode" value={editOrderForm.postcode} onChange={e => setEditOrderForm({
-              ...editOrderForm,
-              postcode: e.target.value
-            })} className="col-span-3" placeholder="12345" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-category" className="text-right">
