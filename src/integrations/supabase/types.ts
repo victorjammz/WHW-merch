@@ -80,7 +80,7 @@ export type Database = {
       event_logs: {
         Row: {
           action: string
-          event_id: string
+          event_id: string | null
           id: string
           new_values: Json | null
           old_values: Json | null
@@ -89,7 +89,7 @@ export type Database = {
         }
         Insert: {
           action: string
-          event_id: string
+          event_id?: string | null
           id?: string
           new_values?: Json | null
           old_values?: Json | null
@@ -98,22 +98,14 @@ export type Database = {
         }
         Update: {
           action?: string
-          event_id?: string
+          event_id?: string | null
           id?: string
           new_values?: Json | null
           old_values?: Json | null
           performed_at?: string
           performed_by?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "event_logs_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       event_orders: {
         Row: {
