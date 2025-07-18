@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { QrCode, Camera, X, Plus, AlertCircle } from 'lucide-react';
+import { QrCode, Camera, X, Plus, Minus, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,7 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
   const [scannedItem, setScannedItem] = useState<InventoryItem | null>(null);
   const [quantityToAdd, setQuantityToAdd] = useState(1);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [operationType, setOperationType] = useState<'add' | 'subtract'>('add');
   
   const { isScanning, startScan, stopScan } = useBarcodeScanner();
   const { toast } = useToast();
@@ -89,7 +90,8 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
 
     setIsUpdating(true);
     try {
-      const newQuantity = scannedItem.quantity + quantityToAdd;
+      const changeAmount = operationType === 'add' ? quantityToAdd : -quantityToAdd;
+      const newQuantity = Math.max(0, scannedItem.quantity + changeAmount);
       
       console.log('Updating inventory:', { id: scannedItem.id, newQuantity });
       
@@ -106,9 +108,10 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
         throw error;
       }
 
+      const actionText = operationType === 'add' ? 'Added' : 'Removed';
       toast({
         title: "Inventory updated",
-        description: `Added ${quantityToAdd} units to ${scannedItem.name}. New total: ${newQuantity}`,
+        description: `${actionText} ${quantityToAdd} units ${operationType === 'add' ? 'to' : 'from'} ${scannedItem.name}. New total: ${newQuantity}`,
       });
 
       // Call the callback to refresh inventory
@@ -117,6 +120,7 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
       setIsDialogOpen(false);
       setScannedItem(null);
       setQuantityToAdd(1);
+      setOperationType('add');
     } catch (error) {
       console.error('Error updating inventory:', error);
       toast({
@@ -136,6 +140,7 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
     setIsDialogOpen(false);
     setScannedItem(null);
     setQuantityToAdd(1);
+    setOperationType('add');
   };
 
   return (
@@ -214,24 +219,54 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Quantity to Add:</label>
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
                       <Button 
-                        variant="outline" 
+                        variant={operationType === 'add' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setQuantityToAdd(Math.max(1, quantityToAdd - 1))}
+                        onClick={() => setOperationType('add')}
+                        className="flex-1"
                       >
-                        -
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add Stock
                       </Button>
-                      <span className="flex-1 text-center font-medium">{quantityToAdd}</span>
                       <Button 
-                        variant="outline" 
+                        variant={operationType === 'subtract' ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setQuantityToAdd(quantityToAdd + 1)}
+                        onClick={() => setOperationType('subtract')}
+                        className="flex-1"
                       >
-                        +
+                        <Minus className="mr-1 h-3 w-3" />
+                        Remove Stock
                       </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Quantity to {operationType === 'add' ? 'Add' : 'Remove'}:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setQuantityToAdd(Math.max(1, quantityToAdd - 1))}
+                        >
+                          -
+                        </Button>
+                        <span className="flex-1 text-center font-medium">{quantityToAdd}</span>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setQuantityToAdd(quantityToAdd + 1)}
+                        >
+                          +
+                        </Button>
+                      </div>
+                      {operationType === 'subtract' && quantityToAdd > scannedItem.quantity && (
+                        <p className="text-xs text-destructive">
+                          Warning: This will reduce stock below zero
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -243,13 +278,18 @@ export function BarcodeScannerInventory({ onInventoryUpdate }: BarcodeScannerInv
                       onClick={updateInventoryQuantity} 
                       disabled={isUpdating}
                       className="flex-1"
+                      variant={operationType === 'subtract' ? 'destructive' : 'default'}
                     >
                       {isUpdating ? (
-                        <>Adding...</>
+                        <>{operationType === 'add' ? 'Adding' : 'Removing'}...</>
                       ) : (
                         <>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add Stock
+                          {operationType === 'add' ? (
+                            <Plus className="mr-2 h-4 w-4" />
+                          ) : (
+                            <Minus className="mr-2 h-4 w-4" />
+                          )}
+                          {operationType === 'add' ? 'Add Stock' : 'Remove Stock'}
                         </>
                       )}
                     </Button>
