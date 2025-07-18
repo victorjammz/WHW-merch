@@ -117,12 +117,23 @@ const EventOrders = () => {
     phone: "",
     address: "",
     postcode: "",
+    status: "pending",
+    payment: "pending"
+  });
+  const [orderItems, setOrderItems] = useState<Array<{
+    category: string;
+    product: string;
+    size: string;
+    color: string;
+    quantity: number;
+    price: number;
+  }>>([]);
+  const [currentItem, setCurrentItem] = useState({
     category: "",
     product: "",
     size: "",
     color: "",
-    status: "pending",
-    payment: "pending"
+    quantity: 1
   });
   const { toast } = useToast();
   const { formatPrice } = useCurrency();
@@ -175,33 +186,33 @@ const EventOrders = () => {
 
   // Filter products when category changes
   useEffect(() => {
-    if (newOrderForm.category) {
-      const filtered = inventoryItems.filter(item => item.category === newOrderForm.category);
+    if (currentItem.category) {
+      const filtered = inventoryItems.filter(item => item.category === currentItem.category);
       setFilteredProducts(filtered);
       // Reset product, size, color when category changes
-      setNewOrderForm(prev => ({ ...prev, product: "", size: "", color: "" }));
+      setCurrentItem(prev => ({ ...prev, product: "", size: "", color: "" }));
       setProductSizes([]);
       setProductColors([]);
     }
-  }, [newOrderForm.category, inventoryItems]);
+  }, [currentItem.category, inventoryItems]);
 
   // Update sizes and colors when product changes
   useEffect(() => {
-    if (newOrderForm.product) {
-      const product = inventoryItems.find(item => item.name === newOrderForm.product);
+    if (currentItem.product) {
+      const product = inventoryItems.find(item => item.name === currentItem.product);
       if (product) {
         // Get all variants of this product to find available sizes and colors
-        const variants = inventoryItems.filter(item => item.name === newOrderForm.product);
+        const variants = inventoryItems.filter(item => item.name === currentItem.product);
         const sizes = [...new Set(variants.map(v => v.size).filter(Boolean))];
         const colors = [...new Set(variants.map(v => v.color).filter(Boolean))];
         
         setProductSizes(sizes);
         setProductColors(colors);
         // Reset size and color when product changes
-        setNewOrderForm(prev => ({ ...prev, size: "", color: "" }));
+        setCurrentItem(prev => ({ ...prev, size: "", color: "" }));
       }
     }
-  }, [newOrderForm.product, inventoryItems]);
+  }, [currentItem.product, inventoryItems]);
 
   const generateOrderId = () => {
     const nextNumber = orders.length + 1;
@@ -222,12 +233,16 @@ const EventOrders = () => {
       phone: "",
       address: "",
       postcode: "",
+      status: "pending",
+      payment: "pending"
+    });
+    setOrderItems([]);
+    setCurrentItem({
       category: "",
       product: "",
       size: "",
       color: "",
-      status: "pending",
-      payment: "pending"
+      quantity: 1
     });
   };
 
@@ -237,8 +252,82 @@ const EventOrders = () => {
            newOrderForm.phone && 
            newOrderForm.address && 
            newOrderForm.postcode && 
-           newOrderForm.category &&
-           newOrderForm.product;
+           orderItems.length > 0;
+  };
+
+  const validateCurrentItem = () => {
+    const product = inventoryItems.find(item => item.name === currentItem.product);
+    if (!product) return false;
+    
+    // Check if size is required (product has variants with sizes)
+    const variants = inventoryItems.filter(item => item.name === currentItem.product);
+    const hasSizes = variants.some(v => v.size);
+    const hasColors = variants.some(v => v.color);
+    
+    return currentItem.category && 
+           currentItem.product && 
+           currentItem.quantity > 0 &&
+           (!hasSizes || currentItem.size) &&
+           (!hasColors || currentItem.color);
+  };
+
+  const addItemToOrder = () => {
+    if (!validateCurrentItem()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required item fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const product = inventoryItems.find(item => 
+      item.name === currentItem.product && 
+      (!currentItem.size || item.size === currentItem.size) &&
+      (!currentItem.color || item.color === currentItem.color)
+    );
+
+    if (!product) {
+      toast({
+        title: "Error",
+        description: "Selected product variant not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newItem = {
+      ...currentItem,
+      price: product.price
+    };
+
+    setOrderItems([...orderItems, newItem]);
+    setCurrentItem({
+      category: "",
+      product: "",
+      size: "",
+      color: "",
+      quantity: 1
+    });
+    setFilteredProducts([]);
+    setProductSizes([]);
+    setProductColors([]);
+
+    toast({
+      title: "Item Added",
+      description: `${product.name} added to order`,
+    });
+  };
+
+  const removeItemFromOrder = (index: number) => {
+    setOrderItems(orderItems.filter((_, i) => i !== index));
+  };
+
+  const calculateOrderTotal = (items?: any[]) => {
+    if (items) {
+      return items.reduce((total, item) => total + (item.quantity * item.price), 0);
+    }
+    return orderItems.reduce((total, item) => total + (item.quantity * item.price), 0);
   };
 
   const handleNextStep = () => {
@@ -258,17 +347,20 @@ const EventOrders = () => {
   };
 
   const handleCreateOrder = () => {
-    if (!newOrderForm.name || !newOrderForm.email || !newOrderForm.phone || !newOrderForm.address || !newOrderForm.postcode || !newOrderForm.category || !newOrderForm.product) {
+    if (!validateStep1()) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields and add at least one item",
         variant: "destructive"
       });
       return;
     }
 
-    // Combine the selections into an items string
-    const itemsDescription = `${newOrderForm.product}${newOrderForm.size ? ` - ${newOrderForm.size}` : ''}${newOrderForm.color ? ` - ${newOrderForm.color}` : ''}`;
+    const orderItemsFormatted = orderItems.map(item => ({
+      name: `${item.product}${item.size ? ` - ${item.size}` : ''}${item.color ? ` - ${item.color}` : ''}`,
+      quantity: item.quantity,
+      price: item.price
+    }));
 
     const newOrder = {
       id: generateOrderId(),
@@ -277,28 +369,14 @@ const EventOrders = () => {
       phone: newOrderForm.phone,
       address: newOrderForm.address,
       postcode: newOrderForm.postcode,
-      items: [{ name: itemsDescription, quantity: 1, price: 0 }], // Default structure for new orders
+      items: orderItemsFormatted,
       status: newOrderForm.status,
       payment: newOrderForm.payment,
       date: new Date().toISOString().split('T')[0]
     };
 
     setOrders([newOrder, ...orders]);
-    setNewOrderForm({
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
-      postcode: "",
-      category: "",
-      product: "",
-      size: "",
-      color: "",
-      status: "pending",
-      payment: "pending"
-    });
-    setCurrentStep(1);
-    setIsNewOrderOpen(false);
+    handleCloseDialog();
     
     toast({
       title: "Event Order Created",
@@ -536,81 +614,146 @@ const EventOrders = () => {
                     placeholder="12345"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Category *
-                  </Label>
-                  <Select value={newOrderForm.category} onValueChange={(value) => setNewOrderForm({...newOrderForm, category: value})}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border z-50">
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Add Items Section */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h3 className="font-semibold">Add Items to Order</h3>
+                  
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category" className="text-right">
+                      Category *
+                    </Label>
+                    <Select value={currentItem.category} onValueChange={(value) => setCurrentItem({...currentItem, category: value})}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border z-50">
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {currentItem.category && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="product" className="text-right">
+                        Product *
+                      </Label>
+                      <Select value={currentItem.product} onValueChange={(value) => setCurrentItem({...currentItem, product: value})}>
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select a product" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border z-50">
+                          {filteredProducts.map((product) => (
+                            <SelectItem key={product.id} value={product.name}>
+                              {product.name} - {formatPrice(product.price)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {currentItem.product && productSizes.length > 0 && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="size" className="text-right">
+                        Size *
+                      </Label>
+                      <Select value={currentItem.size} onValueChange={(value) => setCurrentItem({...currentItem, size: value})}>
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select a size" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border z-50">
+                          {productSizes.map((size) => (
+                            <SelectItem key={size} value={size}>
+                              {size}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {currentItem.product && productColors.length > 0 && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="color" className="text-right">
+                        Color *
+                      </Label>
+                      <Select value={currentItem.color} onValueChange={(value) => setCurrentItem({...currentItem, color: value})}>
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select a color" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border z-50">
+                          {productColors.map((color) => (
+                            <SelectItem key={color} value={color}>
+                              {color}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {currentItem.product && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="quantity" className="text-right">
+                        Quantity *
+                      </Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="1"
+                        value={currentItem.quantity}
+                        onChange={(e) => setCurrentItem({...currentItem, quantity: parseInt(e.target.value) || 1})}
+                        className="col-span-3"
+                      />
+                    </div>
+                  )}
+
+                  {currentItem.product && (
+                    <div className="flex justify-end">
+                      <Button onClick={addItemToOrder} disabled={!validateCurrentItem()}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Item
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                
-                {newOrderForm.category && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="product" className="text-right">
-                      Product *
-                    </Label>
-                    <Select value={newOrderForm.product} onValueChange={(value) => setNewOrderForm({...newOrderForm, product: value})}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a product" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        {filteredProducts.map((product) => (
-                          <SelectItem key={product.id} value={product.name}>
-                            {product.name} - {formatPrice(product.price)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
 
-                {newOrderForm.product && productSizes.length > 0 && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="size" className="text-right">
-                      Size
-                    </Label>
-                    <Select value={newOrderForm.size} onValueChange={(value) => setNewOrderForm({...newOrderForm, size: value})}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a size (optional)" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        {productSizes.map((size) => (
-                          <SelectItem key={size} value={size}>
-                            {size}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {newOrderForm.product && productColors.length > 0 && (
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="color" className="text-right">
-                      Color
-                    </Label>
-                    <Select value={newOrderForm.color} onValueChange={(value) => setNewOrderForm({...newOrderForm, color: value})}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a color (optional)" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        {productColors.map((color) => (
-                          <SelectItem key={color} value={color}>
-                            {color}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {/* Order Items List */}
+                {orderItems.length > 0 && (
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold">Order Items</h3>
+                      <div className="text-lg font-bold">
+                        Total: {formatPrice(calculateOrderTotal())}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {orderItems.map((item, index) => (
+                        <div key={index} className="flex justify-between items-center bg-muted p-3 rounded">
+                          <div>
+                            <div className="font-medium">
+                              {item.product}
+                              {item.size && ` - ${item.size}`}
+                              {item.color && ` - ${item.color}`}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Qty: {item.quantity} × {formatPrice(item.price)} = {formatPrice(item.quantity * item.price)}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeItemFromOrder(index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
