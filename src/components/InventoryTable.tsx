@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Edit, Trash2, Package, QrCode, ZoomIn } from "lucide-react";
+import { Edit, Trash2, Package, QrCode, ZoomIn, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -38,6 +38,9 @@ interface InventoryItem {
   image_url?: string | null;
 }
 
+type SortField = 'sku' | 'name' | 'category' | 'size' | 'color' | 'quantity' | 'price' | 'status';
+type SortDirection = 'asc' | 'desc';
+
 interface InventoryTableProps {
   data: InventoryItem[];
   onRefresh?: () => void;
@@ -47,6 +50,8 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [editForm, setEditForm] = useState({
     name: "",
     category: "",
@@ -61,6 +66,45 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
   const categories = ["Shirts", "Pants", "Dresses", "Outerwear", "Shoes", "Accessories", "Underwear", "Activewear"];
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const colors = ["Black", "White", "Grey", "Navy", "Brown", "Beige", "Red", "Blue", "Green"];
+
+  // Sort data
+  const sortedData = [...data].sort((a, b) => {
+    let aValue: any = a[sortField];
+    let bValue: any = b[sortField];
+
+    // Handle null/undefined values
+    if (aValue === null || aValue === undefined) aValue = '';
+    if (bValue === null || bValue === undefined) bValue = '';
+
+    // Convert to strings for comparison, except for numbers
+    if (sortField === 'quantity' || sortField === 'price') {
+      aValue = Number(aValue);
+      bValue = Number(bValue);
+    } else {
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
+    }
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="h-4 w-4" /> : 
+      <ChevronDown className="h-4 w-4" />;
+  };
 
   // Handle edit dialog
   const handleEditClick = (item: InventoryItem) => {
@@ -172,20 +216,84 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="w-16">Image</TableHead>
-                <TableHead className="min-w-[100px]">SKU</TableHead>
-                <TableHead className="min-w-[150px]">Product Name</TableHead>
-                <TableHead className="min-w-[100px] hidden sm:table-cell">Category</TableHead>
-                <TableHead className="min-w-[80px] hidden md:table-cell">Size</TableHead>
-                <TableHead className="min-w-[80px] hidden md:table-cell">Color</TableHead>
-                <TableHead className="min-w-[80px]">Qty</TableHead>
-                <TableHead className="min-w-[80px]">Price</TableHead>
-                <TableHead className="min-w-[100px]">Status</TableHead>
+                <TableHead 
+                  className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('sku')}
+                >
+                  <div className="flex items-center gap-1">
+                    SKU
+                    {renderSortIcon('sku')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Product Name
+                    {renderSortIcon('name')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[100px] hidden sm:table-cell cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('category')}
+                >
+                  <div className="flex items-center gap-1">
+                    Category
+                    {renderSortIcon('category')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[80px] hidden md:table-cell cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('size')}
+                >
+                  <div className="flex items-center gap-1">
+                    Size
+                    {renderSortIcon('size')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[80px] hidden md:table-cell cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('color')}
+                >
+                  <div className="flex items-center gap-1">
+                    Color
+                    {renderSortIcon('color')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[80px] cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('quantity')}
+                >
+                  <div className="flex items-center gap-1">
+                    Qty
+                    {renderSortIcon('quantity')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[80px] cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('price')}
+                >
+                  <div className="flex items-center gap-1">
+                    Price
+                    {renderSortIcon('price')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[100px] cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-1">
+                    Status
+                    {renderSortIcon('status')}
+                  </div>
+                </TableHead>
                 <TableHead className="min-w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
           <TableBody>
-            {data.length > 0 ? (
-              data.map((item) => (
+            {sortedData.length > 0 ? (
+              sortedData.map((item) => (
                 <TableRow key={item.id} className="hover:bg-muted/20">
                   <TableCell>
                     {item.image_url ? (
