@@ -71,7 +71,7 @@ export function CRMSidebar() {
     return item.allowedRoles.includes(profile?.role || 'employee');
   });
   return <Sidebar className={`${collapsed ? "w-16" : "w-64"} hidden md:block`} collapsible="icon">
-      <SidebarContent className="bg-card border-r">
+      <SidebarContent className="bg-card border-r mx-0 px-0 my-0 py-0">
         <div className="p-4 md:p-6 border-b">
           <div className="flex items-center gap-3 mx-[52px] px-0 py-0 my-0">
             <img src="/lovable-uploads/44068426-b2cb-498d-b6d1-64702f3a3f2f.png" alt="Warehouse Worship Logo" className="h-6 md:h-8 w-auto object-contain" />
