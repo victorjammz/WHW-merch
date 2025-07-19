@@ -34,7 +34,7 @@ interface BarcodeItem {
 const mockBarcodes = [
   {
     id: "1",
-    sku: "WW-TSH-001",
+    sku: "WHW-00001",
     productName: "Worship T-Shirt",
     barcodeText: "123456789012",
     barcodeType: "CODE128",
@@ -43,7 +43,7 @@ const mockBarcodes = [
   },
   {
     id: "2",
-    sku: "WW-MUG-002",
+    sku: "WHW-00002",
     productName: "Coffee Mug",
     barcodeText: "234567890123",
     barcodeType: "CODE128",
@@ -52,7 +52,7 @@ const mockBarcodes = [
   },
   {
     id: "3",
-    sku: "WW-BK-003",
+    sku: "WHW-00003",
     productName: "Study Bible",
     barcodeText: "345678901234",
     barcodeType: "CODE128",
