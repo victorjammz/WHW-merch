@@ -36,8 +36,8 @@ interface FilterState {
 }
 
 const getStockStatus = (quantity: number): "low" | "medium" | "high" => {
-  if (quantity <= 0) return 'low';
-  if (quantity < 20) return 'medium';
+  if (quantity < 15) return 'low';
+  if (quantity <= 25) return 'medium';
   return 'high';
 };
 
