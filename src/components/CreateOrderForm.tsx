@@ -34,7 +34,11 @@ interface Event {
 export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [clientName, setClientName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [postcode, setPostcode] = useState("");
+  const [address, setAddress] = useState("");
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<OrderItem[]>([
@@ -98,7 +102,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedEvent || !clientName) {
+    if (!selectedEvent || !fullName || !email || !phone || !postcode || !address) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -114,7 +118,11 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       
       const orderData = {
         event_name: selectedEvent.name,
-        client_name: clientName,
+        client_name: fullName,
+        client_email: email,
+        client_phone: phone,
+        client_postcode: postcode,
+        client_address: address,
         event_date: selectedEvent.event_date,
         status,
         notes: notes || null,
@@ -200,12 +208,62 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="client-name">Client Name *</Label>
+          <Label htmlFor="full-name">Full Name *</Label>
           <Input
-            id="client-name"
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
+            id="full-name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
             placeholder="e.g., John Smith"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email *</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="e.g., john@example.com"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone Number *</Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g., +44 1234 567890"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="postcode">Postcode *</Label>
+          <Input
+            id="postcode"
+            value={postcode}
+            onChange={(e) => setPostcode(e.target.value)}
+            placeholder="e.g., SW1A 1AA"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="address">Address *</Label>
+          <Input
+            id="address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="e.g., 123 Main Street, London"
             required
           />
         </div>
