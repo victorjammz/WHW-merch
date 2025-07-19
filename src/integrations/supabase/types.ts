@@ -290,7 +290,7 @@ export type Database = {
           product_id: string
           quantity: number
           size: string | null
-          sku: string
+          sku: string | null
           status: string
           updated_at: string
         }
@@ -305,7 +305,7 @@ export type Database = {
           product_id: string
           quantity?: number
           size?: string | null
-          sku: string
+          sku?: string | null
           status?: string
           updated_at?: string
         }
@@ -320,7 +320,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           size?: string | null
-          sku?: string
+          sku?: string | null
           status?: string
           updated_at?: string
         }
