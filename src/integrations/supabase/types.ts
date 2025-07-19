@@ -278,6 +278,92 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variants: {
+        Row: {
+          barcode_text: string | null
+          barcode_type: string | null
+          color: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          price: number
+          product_id: string
+          quantity: number
+          size: string | null
+          sku: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          barcode_text?: string | null
+          barcode_type?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          price: number
+          product_id: string
+          quantity?: number
+          size?: string | null
+          sku: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          barcode_text?: string | null
+          barcode_type?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          price?: number
+          product_id?: string
+          quantity?: number
+          size?: string | null
+          sku?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approved_at: string | null
