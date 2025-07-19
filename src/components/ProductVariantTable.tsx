@@ -74,7 +74,7 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
     price: ""
   });
   const { toast } = useToast();
-  const { formatPrice, getCurrencySymbol } = useCurrency();
+  const { formatPrice, getCurrencySymbol, currency } = useCurrency();
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const colors = ["Black", "White", "Grey", "Navy", "Brown", "Beige", "Red", "Blue", "Green"];
@@ -528,7 +528,7 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="edit-price">Price ({getCurrencySymbol()})</Label>
+                <Label htmlFor="edit-price">Price ({getCurrencySymbol(currency)})</Label>
                 <Input
                   id="edit-price"
                   type="number"
