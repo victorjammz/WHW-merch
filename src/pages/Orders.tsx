@@ -56,7 +56,14 @@ const Orders = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      // Parse the items JSON string back to array for each order
+      const ordersWithParsedItems = (data || []).map(order => ({
+        ...order,
+        items: typeof order.items === 'string' ? JSON.parse(order.items || '[]') : order.items || []
+      }));
+      
+      setOrders(ordersWithParsedItems);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -78,7 +85,14 @@ const Orders = () => {
         .order('deleted_at', { ascending: false });
 
       if (error) throw error;
-      setDeletedOrders(data || []);
+      
+      // Parse the items JSON string back to array for each deleted order
+      const deletedOrdersWithParsedItems = (data || []).map(order => ({
+        ...order,
+        items: typeof order.items === 'string' ? JSON.parse(order.items || '[]') : order.items || []
+      }));
+      
+      setDeletedOrders(deletedOrdersWithParsedItems);
     } catch (error: any) {
       console.error('Error fetching deleted orders:', error);
     }
