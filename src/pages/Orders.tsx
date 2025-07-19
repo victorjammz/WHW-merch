@@ -37,6 +37,7 @@ const Orders = () => {
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const { toast } = useToast();
   const { formatPrice } = useCurrency();
@@ -404,9 +405,9 @@ const Orders = () => {
                     New Order
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Create New Order</DialogTitle>
+                    <DialogTitle>Create New Order - Step {currentStep} of 2</DialogTitle>
                     <DialogDescription>
                       Add a new event order to the system
                     </DialogDescription>
@@ -414,9 +415,13 @@ const Orders = () => {
                   <CreateOrderForm 
                     onSuccess={() => {
                       setIsCreateOrderOpen(false);
+                      setCurrentStep(1);
                       fetchOrders();
                     }}
-                    onCancel={() => setIsCreateOrderOpen(false)}
+                    onCancel={() => {
+                      setIsCreateOrderOpen(false);
+                      setCurrentStep(1);
+                    }}
                   />
                 </DialogContent>
               </Dialog>

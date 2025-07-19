@@ -324,353 +324,335 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Create New Order - Step {currentStep} of 2
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent>
-          {currentStep === 1 ? (
-            <div className="space-y-6">
-              {/* Event Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="event">Event *</Label>
-                <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an event" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.name} - {new Date(event.event_date).toLocaleDateString()} ({event.location})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Customer Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name *</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter customer full name"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => handleEmailChange(e.target.value)}
-                    placeholder="customer@example.com"
-                    className={emailError ? "border-red-500" : ""}
-                    required
-                  />
-                  {emailError && (
-                    <p className="text-sm text-red-500">{emailError}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input
-                    id="phone"
-                    value={phone}
-                    onChange={(e) => handlePhoneChange(e.target.value)}
-                    placeholder="+44 123 456 7890"
-                    className={phoneError ? "border-red-500" : ""}
-                    required
-                  />
-                  {phoneError && (
-                    <p className="text-sm text-red-500">{phoneError}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="status">Order Status</Label>
-                  <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Address Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Address Information</h3>
-                <PostcodeAutocomplete
-                  onAddressComplete={(addressData) => {
-                    setAddress(addressData.address);
-                    setCity(addressData.city);
-                    setPostcode(addressData.postcode);
-                    setCountry(addressData.country);
-                  }}
-                />
-                
-                {/* Show individual fields if they have values */}
-                {(address || city || postcode || country) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-                    <div className="space-y-2">
-                      <Label htmlFor="address-display">Address *</Label>
-                      <Input
-                        id="address-display"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        placeholder="Address will be filled automatically"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="city-display">City *</Label>
-                      <Input
-                        id="city-display"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        placeholder="City will be filled automatically"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="postcode-display">Postcode *</Label>
-                      <Input
-                        id="postcode-display"
-                        value={postcode}
-                        onChange={(e) => setPostcode(e.target.value)}
-                        placeholder="Postcode will be filled automatically"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="country-display">Country *</Label>
-                      <Input
-                        id="country-display"
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        placeholder="Country will be filled automatically"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Order Items */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Order Items</h3>
-                  <Button type="button" onClick={addItem} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Item
-                  </Button>
-                </div>
-                
-                {orderItems.map((item, index) => (
-                  <Card key={item.id} className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                      <div className="space-y-2">
-                        <Label>Product Variant *</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "justify-between",
-                                !item.variant_id && "text-muted-foreground"
-                              )}
-                            >
-                              {item.variant_id
-                                ? (() => {
-                                    const variant = productVariants.find(v => v.id === item.variant_id);
-                                    return variant 
-                                      ? `${variant.product?.name} - ${variant.sku} (${variant.size || 'N/A'}, ${variant.color || 'N/A'})`
-                                      : "Select variant...";
-                                  })()
-                                : "Select variant..."}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-80 p-0">
-                            <Command>
-                              <CommandInput placeholder="Search variants..." />
-                              <CommandEmpty>No variant found.</CommandEmpty>
-                              <CommandList>
-                                <CommandGroup>
-                                  {getFilteredVariants().map((variant) => (
-                                    <CommandItem
-                                      key={variant.id}
-                                      value={`${variant.product?.name} ${variant.sku} ${variant.size} ${variant.color}`}
-                                      onSelect={() => {
-                                        updateItem(item.id, 'variant_id', variant.id);
-                                      }}
-                                    >
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">{variant.product?.name}</span>
-                                        <span className="text-sm text-muted-foreground">
-                                          {variant.sku} - {variant.size || 'N/A'}, {variant.color || 'N/A'}
-                                        </span>
-                                        <span className="text-sm font-medium">£{variant.price}</span>
-                                      </div>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Quantity *</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>Price</Label>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg font-medium">£{item.price.toFixed(2)}</span>
-                          <Badge variant="secondary">
-                            Total: £{(item.price * item.quantity).toFixed(2)}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => removeItem(item.id)}
-                          disabled={orderItems.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {currentStep === 1 ? (
+        <div className="space-y-6">
+          {/* Event Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="event">Event *</Label>
+            <Select value={selectedEvent} onValueChange={setSelectedEvent}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an event" />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.name} - {new Date(event.event_date).toLocaleDateString()} ({event.location})
+                  </SelectItem>
                 ))}
-                
-                <div className="flex justify-end">
-                  <div className="text-lg font-semibold">
-                    Total: £{calculateTotal().toFixed(2)}
-                  </div>
-                </div>
-              </div>
+              </SelectContent>
+            </Select>
+          </div>
 
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any additional notes for this order..."
-                  rows={3}
-                />
-              </div>
+          {/* Customer Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name *</Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter customer full name"
+                required
+              />
             </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Payment Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Payment Information</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                placeholder="customer@example.com"
+                className={emailError ? "border-red-500" : ""}
+                required
+              />
+              {emailError && (
+                <p className="text-sm text-red-500">{emailError}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone *</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="+44 123 456 7890"
+                className={phoneError ? "border-red-500" : ""}
+                required
+              />
+              {phoneError && (
+                <p className="text-sm text-red-500">{phoneError}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="status">Order Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Address Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Address Information</h3>
+            <PostcodeAutocomplete
+              onAddressComplete={(addressData) => {
+                setAddress(addressData.address);
+                setCity(addressData.city);
+                setPostcode(addressData.postcode);
+                setCountry(addressData.country);
+              }}
+            />
+            
+            {/* Show individual fields if they have values */}
+            {(address || city || postcode || country) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="address-display">Address *</Label>
+                  <Input
+                    id="address-display"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Address will be filled automatically"
+                    required
+                  />
+                </div>
                 
                 <div className="space-y-2">
-                  <Label>Payment Status *</Label>
-                  <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="not paid">Not Paid</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Paid via</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="payment-reference">Payment Reference</Label>
+                  <Label htmlFor="city-display">City *</Label>
                   <Input
-                    id="payment-reference"
-                    value={paymentReference}
-                    onChange={(e) => setPaymentReference(e.target.value)}
-                    placeholder="Enter payment reference (optional)"
+                    id="city-display"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City will be filled automatically"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="postcode-display">Postcode *</Label>
+                  <Input
+                    id="postcode-display"
+                    value={postcode}
+                    onChange={(e) => setPostcode(e.target.value)}
+                    placeholder="Postcode will be filled automatically"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="country-display">Country *</Label>
+                  <Input
+                    id="country-display"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="Country will be filled automatically"
+                    required
                   />
                 </div>
               </div>
-            </div>
-          )}
-        </CardContent>
+            )}
+          </div>
 
-        <div className="flex justify-between p-6 border-t">
-          {currentStep === 1 ? (
-            <>
-              <div></div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={onCancel}>
-                  Cancel
-                </Button>
-                <Button type="button" onClick={handleNextStep}>
-                  Next
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <Button type="button" variant="outline" onClick={() => setCurrentStep(1)}>
-                Back
+          {/* Order Items */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Order Items</h3>
+              <Button type="button" onClick={addItem} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
               </Button>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={onCancel}>
-                  Cancel
-                </Button>
-                <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
-                  {isSubmitting ? "Creating..." : "Create Order"}
-                </Button>
+            </div>
+            
+            {orderItems.map((item, index) => (
+              <Card key={item.id} className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                  <div className="space-y-2">
+                    <Label>Product Variant *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "justify-between",
+                            !item.variant_id && "text-muted-foreground"
+                          )}
+                        >
+                          {item.variant_id
+                            ? (() => {
+                                const variant = productVariants.find(v => v.id === item.variant_id);
+                                return variant 
+                                  ? `${variant.product?.name} - ${variant.sku} (${variant.size || 'N/A'}, ${variant.color || 'N/A'})`
+                                  : "Select variant...";
+                              })()
+                            : "Select variant..."}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0">
+                        <Command>
+                          <CommandInput placeholder="Search variants..." />
+                          <CommandEmpty>No variant found.</CommandEmpty>
+                          <CommandList>
+                            <CommandGroup>
+                              {getFilteredVariants().map((variant) => (
+                                <CommandItem
+                                  key={variant.id}
+                                  value={`${variant.product?.name} ${variant.sku} ${variant.size} ${variant.color}`}
+                                  onSelect={() => {
+                                    updateItem(item.id, 'variant_id', variant.id);
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{variant.product?.name}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                      {variant.sku} - {variant.size || 'N/A'}, {variant.color || 'N/A'}
+                                    </span>
+                                    <span className="text-sm font-medium">£{variant.price}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Quantity *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Price</Label>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-medium">£{item.price.toFixed(2)}</span>
+                      <Badge variant="secondary">
+                        Total: £{(item.price * item.quantity).toFixed(2)}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => removeItem(item.id)}
+                      disabled={orderItems.length === 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            
+            <div className="flex justify-end">
+              <div className="text-lg font-semibold">
+                Total: £{calculateTotal().toFixed(2)}
               </div>
-            </>
-          )}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional notes for this order..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleNextStep}>
+              Next
+            </Button>
+          </div>
         </div>
-      </Card>
-    </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Payment Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Payment Information</h3>
+            
+            <div className="space-y-2">
+              <Label>Payment Status *</Label>
+              <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not paid">Not Paid</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Paid via</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment-reference">Payment Reference</Label>
+              <Input
+                id="payment-reference"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder="Enter payment reference (optional)"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-between">
+            <Button type="button" variant="outline" onClick={() => setCurrentStep(1)}>
+              Back
+            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Order"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </form>
   );
 }
