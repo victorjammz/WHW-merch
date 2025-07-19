@@ -61,6 +61,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [phone, setPhone] = useState("");
   const [postcode, setPostcode] = useState("");
   const [address, setAddress] = useState("");
+  const [country, setCountry] = useState("");
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -473,13 +474,14 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
           onAddressComplete={(addressData) => {
             setAddress(addressData.address);
             setPostcode(addressData.postcode);
+            setCountry(addressData.country);
           }}
           className="space-y-4"
         />
         
         {/* Show individual fields if they have values */}
-        {(address || postcode) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+        {(address || postcode || country) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
             <div className="space-y-2">
               <Label htmlFor="address-display">Address *</Label>
               <Input
@@ -498,6 +500,17 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
                 value={postcode}
                 onChange={(e) => setPostcode(e.target.value)}
                 placeholder="Postcode will be filled automatically"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="country-display">Country *</Label>
+              <Input
+                id="country-display"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="Country will be filled automatically"
                 required
               />
             </div>

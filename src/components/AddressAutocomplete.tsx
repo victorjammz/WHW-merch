@@ -26,6 +26,7 @@ interface AddressSuggestion {
 interface ExpandedAddress {
   address: string;
   postcode: string;
+  country: string;
 }
 
 interface PostcodeAutocompleteProps {
@@ -42,7 +43,8 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [expandedAddress, setExpandedAddress] = useState<ExpandedAddress>({
     address: "",
-    postcode: ""
+    postcode: "",
+    country: "United Kingdom"
   });
 
   const searchPostcodes = useStableCallback(async (query: string) => {
@@ -92,7 +94,8 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     
     setExpandedAddress({
       address: fullAddress,
-      postcode: address.postcode || postcode
+      postcode: address.postcode || postcode,
+      country: address.country || "United Kingdom"
     });
     
     setPostcode(address.postcode || postcode);
@@ -117,22 +120,23 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     setShowExpandedForm(true);
     setExpandedAddress({
       address: "",
-      postcode: postcode || ""
+      postcode: postcode || "",
+      country: "United Kingdom"
     });
     setIsOpen(false);
     setSuggestions([]);
   };
 
   const handleExpandedFormChange = (field: keyof ExpandedAddress, value: string) => {
-    setExpandedAddress(prev => ({
-      ...prev,
+    const updatedAddress = {
+      ...expandedAddress,
       [field]: value
-    }));
-  };
-
-  const handleComplete = () => {
-    if (expandedAddress.address && expandedAddress.postcode) {
-      onAddressComplete(expandedAddress);
+    };
+    setExpandedAddress(updatedAddress);
+    
+    // Auto-update parent component as user types
+    if (updatedAddress.address && updatedAddress.postcode && updatedAddress.country) {
+      onAddressComplete(updatedAddress);
     }
   };
 
@@ -142,7 +146,8 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     setShowManualEntry(false);
     setExpandedAddress({
       address: "",
-      postcode: ""
+      postcode: "",
+      country: "United Kingdom"
     });
     setSuggestions([]);
   };
@@ -179,15 +184,18 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
               required
             />
           </div>
+          
+          <div>
+            <Label htmlFor="country">Country *</Label>
+            <Input
+              id="country"
+              value={expandedAddress.country}
+              onChange={(e) => handleExpandedFormChange("country", e.target.value)}
+              placeholder="United Kingdom"
+              required
+            />
+          </div>
         </div>
-        
-        <Button 
-          onClick={handleComplete}
-          disabled={!expandedAddress.address || !expandedAddress.postcode}
-          className="w-full"
-        >
-          Confirm Address
-        </Button>
       </div>
     );
   }
