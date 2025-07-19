@@ -64,6 +64,8 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [items, setItems] = useState<OrderItem[]>([
     { 
       id: "1", 
@@ -83,6 +85,40 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [eventSearchOpen, setEventSearchOpen] = useState(false);
   
   const { toast } = useToast();
+
+  // Email validation function
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Phone validation function - supports various formats
+  const validatePhone = (phone: string): boolean => {
+    // Remove all non-digit characters for validation
+    const cleaned = phone.replace(/\D/g, '');
+    // Check if it's between 10-15 digits (international format)
+    return cleaned.length >= 10 && cleaned.length <= 15;
+  };
+
+  // Handle email change with validation
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (value && !validateEmail(value)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  // Handle phone change with validation
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    if (value && !validatePhone(value)) {
+      setPhoneError("Please enter a valid phone number (10-15 digits)");
+    } else {
+      setPhoneError("");
+    }
+  };
 
   // Fetch events, categories, and inventory on component mount
   useEffect(() => {
@@ -262,10 +298,33 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate required fields
     if (!selectedEvent || !fullName || !email || !phone || !(postcode && address)) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate phone format
+    if (!validatePhone(phone)) {
+      setPhoneError("Please enter a valid phone number (10-15 digits)");
+      toast({
+        title: "Validation Error", 
+        description: "Please enter a valid phone number",
         variant: "destructive"
       });
       return;
@@ -388,10 +447,14 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => handleEmailChange(e.target.value)}
             placeholder="e.g., john@example.com"
+            className={emailError ? "border-destructive" : ""}
             required
           />
+          {emailError && (
+            <p className="text-sm text-destructive">{emailError}</p>
+          )}
         </div>
         
         <div className="space-y-2">
@@ -400,10 +463,14 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
             id="phone"
             type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => handlePhoneChange(e.target.value)}
             placeholder="e.g., +44 1234 567890"
+            className={phoneError ? "border-destructive" : ""}
             required
           />
+          {phoneError && (
+            <p className="text-sm text-destructive">{phoneError}</p>
+          )}
         </div>
       </div>
 
