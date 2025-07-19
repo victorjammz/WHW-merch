@@ -64,6 +64,7 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [editVariant, setEditVariant] = useState<ProductVariant | null>(null);
   const [deleteVariant, setDeleteVariant] = useState<ProductVariant | null>(null);
+  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
   const [sortField, setSortField] = useState<SortField>('sku');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
@@ -182,7 +183,7 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
     }
   };
 
-  // Handle delete
+  // Handle delete variant
   const handleDelete = async () => {
     if (!deleteVariant) return;
 
@@ -205,6 +206,43 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
       toast({
         title: "Error",
         description: "Failed to delete variant",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle delete product
+  const handleDeleteProduct = async () => {
+    if (!deleteProduct) return;
+
+    try {
+      // First delete all variants
+      const { error: variantsError } = await supabase
+        .from('product_variants')
+        .delete()
+        .eq('product_id', deleteProduct.id);
+
+      if (variantsError) throw variantsError;
+
+      // Then delete the product
+      const { error: productError } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', deleteProduct.id);
+
+      if (productError) throw productError;
+
+      toast({
+        title: "Success",
+        description: `Product "${deleteProduct.name}" and all its variants deleted successfully`
+      });
+      
+      setDeleteProduct(null);
+      onRefresh?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
         variant: "destructive"
       });
     }
@@ -271,6 +309,18 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
                     <Badge variant="outline">
                       {product.variants.reduce((sum, v) => sum + v.quantity, 0)} total items
                     </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      title="Delete Product"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteProduct(product);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                     {expandedProducts.has(product.id) ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
@@ -553,7 +603,7 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Variant Confirmation Dialog */}
       <AlertDialog open={!!deleteVariant} onOpenChange={() => setDeleteVariant(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -566,6 +616,24 @@ export function ProductVariantTable({ data, onRefresh }: ProductVariantTableProp
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Product Confirmation Dialog */}
+      <AlertDialog open={!!deleteProduct} onOpenChange={() => setDeleteProduct(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteProduct?.name}" and all its {deleteProduct?.variants.length} variants? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProduct} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Product
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
