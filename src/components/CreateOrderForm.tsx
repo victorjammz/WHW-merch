@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Plus, Minus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Check, ChevronsUpDown, Plus, Minus, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,9 +20,14 @@ interface CreateOrderFormProps {
 
 interface OrderItem {
   id: string;
-  name: string;
+  category: string;
+  product_id: string;
+  product_name: string;
+  color: string;
+  size: string;
   quantity: number;
   price: number;
+  available_stock: number;
 }
 
 interface Event {
@@ -29,6 +35,22 @@ interface Event {
   name: string;
   event_date: string;
   location: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  color: string;
+  size: string;
+  quantity: number;
+  price: number;
+  status: string;
 }
 
 export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
@@ -42,16 +64,30 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<OrderItem[]>([
-    { id: "1", name: "", quantity: 1, price: 0 }
+    { 
+      id: "1", 
+      category: "", 
+      product_id: "", 
+      product_name: "", 
+      color: "", 
+      size: "", 
+      quantity: 1, 
+      price: 0, 
+      available_stock: 0 
+    }
   ]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [eventSearchOpen, setEventSearchOpen] = useState(false);
   
   const { toast } = useToast();
 
-  // Fetch events on component mount
+  // Fetch events, categories, and inventory on component mount
   useEffect(() => {
     fetchEvents();
+    fetchCategories();
+    fetchInventory();
   }, []);
 
   const fetchEvents = async () => {
@@ -73,12 +109,55 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load categories",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchInventory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id, name, category, color, size, quantity, price, status')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setInventory(data || []);
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load inventory",
+        variant: "destructive"
+      });
+    }
+  };
+
   const addItem = () => {
     const newItem: OrderItem = {
       id: Date.now().toString(),
-      name: "",
+      category: "",
+      product_id: "",
+      product_name: "",
+      color: "",
+      size: "",
       quantity: 1,
-      price: 0
+      price: 0,
+      available_stock: 0
     };
     setItems([...items, newItem]);
   };
@@ -90,14 +169,94 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   };
 
   const updateItem = (id: string, field: keyof OrderItem, value: string | number) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    ));
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        
+        // If category changes, reset product selection
+        if (field === 'category') {
+          updatedItem.product_id = "";
+          updatedItem.product_name = "";
+          updatedItem.color = "";
+          updatedItem.size = "";
+          updatedItem.price = 0;
+          updatedItem.available_stock = 0;
+        }
+        
+        // If product changes, update price and stock info
+        if (field === 'product_id') {
+          const selectedProduct = inventory.find(inv => 
+            inv.id === value && 
+            inv.color === item.color && 
+            inv.size === item.size
+          );
+          if (selectedProduct) {
+            updatedItem.product_name = selectedProduct.name;
+            updatedItem.price = selectedProduct.price;
+            updatedItem.available_stock = selectedProduct.quantity;
+          }
+        }
+        
+        // If color or size changes, update stock and price
+        if (field === 'color' || field === 'size') {
+          const selectedProduct = inventory.find(inv => 
+            inv.id === item.product_id && 
+            inv.color === (field === 'color' ? value : item.color) && 
+            inv.size === (field === 'size' ? value : item.size)
+          );
+          if (selectedProduct) {
+            updatedItem.price = selectedProduct.price;
+            updatedItem.available_stock = selectedProduct.quantity;
+          }
+        }
+        
+        return updatedItem;
+      }
+      return item;
+    }));
   };
 
   const calculateTotal = () => {
     return items.reduce((total, item) => total + (item.quantity * item.price), 0);
   };
+
+  const getProductsByCategory = (category: string) => {
+    return inventory
+      .filter(item => item.category === category)
+      .reduce((unique, item) => {
+        if (!unique.find(u => u.id === item.id && u.name === item.name)) {
+          unique.push({ id: item.id, name: item.name });
+        }
+        return unique;
+      }, [] as { id: string; name: string }[]);
+  };
+
+  const getColorsByProduct = (productId: string) => {
+    return [...new Set(inventory
+      .filter(item => item.id === productId)
+      .map(item => item.color)
+      .filter(color => color && color.trim() !== "")
+    )];
+  };
+
+  const getSizesByProductAndColor = (productId: string, color: string) => {
+    return [...new Set(inventory
+      .filter(item => item.id === productId && item.color === color)
+      .map(item => item.size)
+      .filter(size => size && size.trim() !== "")
+    )];
+  };
+
+  const getStockLevel = (productId: string, color: string, size: string) => {
+    const item = inventory.find(inv => 
+      inv.id === productId && 
+      inv.color === color && 
+      inv.size === size
+    );
+    return item ? item.quantity : 0;
+  };
+
+  const isLowStock = (stock: number) => stock < 15;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +273,9 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     setIsSubmitting(true);
     
     try {
-      const validItems = items.filter(item => item.name.trim() !== "");
+      const validItems = items.filter(item => 
+        item.category && item.product_id && item.quantity > 0
+      );
       
       const orderData = {
         event_name: selectedEvent.name,
@@ -295,46 +456,141 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         </div>
         
         {items.map((item, index) => (
-          <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end border rounded-lg p-3">
-            <div className="md:col-span-5">
-              <Label className="text-sm">Item Name</Label>
-              <Input
-                value={item.name}
-                onChange={(e) => updateItem(item.id, "name", e.target.value)}
-                placeholder="e.g., T-Shirt, Program Book"
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <Label className="text-sm">Quantity</Label>
-              <Input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
-              />
-            </div>
-            
-            <div className="md:col-span-3">
-              <Label className="text-sm">Price (each)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={item.price}
-                onChange={(e) => updateItem(item.id, "price", parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-              />
-            </div>
-            
-            <div className="md:col-span-1">
-              <Label className="text-sm">Subtotal</Label>
-              <div className="text-sm font-medium py-2">
-                £{(item.quantity * item.price).toFixed(2)}
+          <div key={item.id} className="border rounded-lg p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Category Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm">Category *</Label>
+                <Select 
+                  value={item.category} 
+                  onValueChange={(value) => updateItem(item.id, "category", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Product Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm">Product *</Label>
+                <Select 
+                  value={item.product_id} 
+                  onValueChange={(value) => updateItem(item.id, "product_id", value)}
+                  disabled={!item.category}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select product" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {getProductsByCategory(item.category).map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Color Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm">Color *</Label>
+                <Select 
+                  value={item.color} 
+                  onValueChange={(value) => updateItem(item.id, "color", value)}
+                  disabled={!item.product_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select color" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {getColorsByProduct(item.product_id).map((color) => (
+                      <SelectItem key={color} value={color}>
+                        {color}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            <div className="md:col-span-1">
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Size Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm">Size *</Label>
+                <Select 
+                  value={item.size} 
+                  onValueChange={(value) => updateItem(item.id, "size", value)}
+                  disabled={!item.color}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {getSizesByProductAndColor(item.product_id, item.color).map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Quantity */}
+              <div className="space-y-2">
+                <Label className="text-sm">Quantity *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max={item.available_stock}
+                  value={item.quantity}
+                  onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
+                />
+              </div>
+
+              {/* Price */}
+              <div className="space-y-2">
+                <Label className="text-sm">Price (each)</Label>
+                <div className="text-sm font-medium py-2">
+                  £{item.price.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Subtotal */}
+              <div className="space-y-2">
+                <Label className="text-sm">Subtotal</Label>
+                <div className="text-sm font-medium py-2">
+                  £{(item.quantity * item.price).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Stock Level Warning */}
+            {item.available_stock > 0 && isLowStock(item.available_stock) && (
+              <Alert className="border-orange-200 bg-orange-50">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-orange-800">
+                  Low stock warning: Only {item.available_stock} units available
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Stock Info */}
+            {item.available_stock > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Available stock: {item.available_stock} units
+              </div>
+            )}
+
+            {/* Remove Item Button */}
+            <div className="flex justify-end">
               <Button
                 type="button"
                 variant="ghost"
@@ -343,7 +599,8 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
                 disabled={items.length === 1}
                 className="text-destructive hover:text-destructive"
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-4 w-4 mr-1" />
+                Remove Item
               </Button>
             </div>
           </div>
