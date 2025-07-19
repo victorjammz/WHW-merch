@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit, Star, Trash2, Undo, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit, Star, Trash2, Undo, ChevronUp, ChevronDown } from "lucide-react";
 import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -187,6 +187,13 @@ const Orders = () => {
       setSortBy(field);
       setSortOrder("asc");
     }
+  };
+
+  const renderSortIcon = (field: string) => {
+    if (sortBy !== field) return null;
+    return sortOrder === "asc" ? 
+      <ChevronUp className="h-4 w-4" /> : 
+      <ChevronDown className="h-4 w-4" />;
   };
 
   const filteredAndSortedOrders = (activeTab === "active" ? orders : deletedOrders)
@@ -417,38 +424,38 @@ const Orders = () => {
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("created_at")}>
                       <div className="flex items-center gap-2">
                         Order ID
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("created_at")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_name")}>
                       <div className="flex items-center gap-2">
                         Event Name
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("event_name")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("client_name")}>
                       <div className="flex items-center gap-2">
                         Client
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("client_name")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_date")}>
                       <div className="flex items-center gap-2">
                         Date
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("event_date")}
                       </div>
                     </TableHead>
                     <TableHead>Items</TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("total_amount")}>
                       <div className="flex items-center gap-2">
                         Total
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("total_amount")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("status")}>
                       <div className="flex items-center gap-2">
                         Status
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("status")}
                       </div>
                     </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -591,37 +598,37 @@ const Orders = () => {
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("created_at")}>
                       <div className="flex items-center gap-2">
                         Order ID
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("created_at")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_name")}>
                       <div className="flex items-center gap-2">
                         Event Name
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("event_name")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("client_name")}>
                       <div className="flex items-center gap-2">
                         Client
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("client_name")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_date")}>
                       <div className="flex items-center gap-2">
                         Event Date
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("event_date")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("total_amount")}>
                       <div className="flex items-center gap-2">
                         Total
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("total_amount")}
                       </div>
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("deleted_at")}>
                       <div className="flex items-center gap-2">
                         Deleted At
-                        <ArrowUpDown className="h-4 w-4" />
+                        {renderSortIcon("deleted_at")}
                       </div>
                     </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
