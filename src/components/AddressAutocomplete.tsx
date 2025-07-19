@@ -56,40 +56,32 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
       return;
     }
 
-    setIsLoading(true);
     try {
       // Search specifically for postcodes with better parameters for responsiveness
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
           query
-        )}&format=json&addressdetails=1&limit=8&countrycodes=gb,ie&class=place&type=postcode`,
-        {
-          signal: AbortController && new AbortController().signal
-        }
+        )}&format=json&addressdetails=1&limit=8&countrycodes=gb,ie&class=place&type=postcode`
       );
       
       if (response.ok) {
         const data = await response.json();
-        // Only update suggestions if the component is still mounted and query hasn't changed
         setSuggestions(data || []);
       }
     } catch (error) {
-      // Don't log abort errors as they're expected when user types quickly
-      if (error.name !== 'AbortError') {
-        console.error("Error fetching postcode suggestions:", error);
-      }
+      console.error("Error fetching postcode suggestions:", error);
       setSuggestions([]);
-    } finally {
-      setIsLoading(false);
     }
   });
 
-  const debouncedSearch = useDebounce(searchPostcodes, 150);
+  const debouncedSearch = useDebounce(searchPostcodes, 300);
 
   const handlePostcodeChange = useCallback((inputValue: string) => {
     setPostcode(inputValue);
+    
     if (inputValue.length >= 2) {
       setIsOpen(true);
+      setIsLoading(true);
       debouncedSearch(inputValue);
     } else {
       setIsOpen(false);
@@ -241,7 +233,6 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
                 onChange={(e) => handlePostcodeChange(e.target.value)}
                 placeholder="Start typing postcode (e.g., SW1A)"
                 className="pr-10"
-                disabled={isLoading}
               />
               <MapPin className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
