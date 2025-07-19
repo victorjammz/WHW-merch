@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw, Calendar, MapPin, Plus, Edit, Trash } from "lucide-react";
+import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw, Calendar, MapPin, Plus, Edit, Trash, QrCode, Copy, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -54,6 +55,15 @@ const Settings = () => {
     last_name: ''
   });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  
+  // 2FA state
+  const [is2FADialogOpen, setIs2FADialogOpen] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerifying2FA, setIsVerifying2FA] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -73,6 +83,12 @@ const Settings = () => {
   useEffect(() => {
     if (activeTab === "profile") {
       fetchUserProfile();
+    }
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    if (activeTab === "security") {
+      check2FAStatus();
     }
   }, [activeTab, user]);
 
@@ -496,6 +512,152 @@ const Settings = () => {
     }
   };
 
+  // 2FA Functions
+  const check2FAStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+      
+      const totpFactor = data.totp.find(factor => factor.status === 'verified');
+      setIs2FAEnabled(!!totpFactor);
+    } catch (error: any) {
+      console.error('Error checking 2FA status:', error);
+    }
+  };
+
+  const initiate2FASetup = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        issuer: 'Warehouse Worship',
+        friendlyName: user?.email || 'Account'
+      });
+
+      if (error) throw error;
+
+      setTotpSecret(data.totp.secret);
+      setQrCodeUrl(data.totp.uri);
+      setIs2FADialogOpen(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to setup 2FA: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const verify2FASetup = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid 6-digit code",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsVerifying2FA(true);
+    try {
+      const factors = await supabase.auth.mfa.listFactors();
+      const totpFactor = factors.data.totp[0];
+
+      // Create a challenge first
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: totpFactor.id
+      });
+
+      if (challengeError) throw challengeError;
+
+      const { error } = await supabase.auth.mfa.verify({
+        factorId: totpFactor.id,
+        challengeId: challenge.id,
+        code: verificationCode
+      });
+
+      if (error) throw error;
+
+      // Generate backup codes
+      const codes = Array.from({ length: 8 }, () => 
+        Math.random().toString(36).substring(2, 8).toUpperCase()
+      );
+      setBackupCodes(codes);
+
+      await updateSettings({ two_factor_auth: true });
+      setIs2FAEnabled(true);
+      
+      toast({
+        title: "Success",
+        description: "Two-factor authentication has been enabled successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Invalid verification code. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifying2FA(false);
+    }
+  };
+
+  const disable2FA = async () => {
+    if (!window.confirm('Are you sure you want to disable two-factor authentication? This will make your account less secure.')) {
+      return;
+    }
+
+    try {
+      const { data } = await supabase.auth.mfa.listFactors();
+      const totpFactor = data.totp.find(factor => factor.status === 'verified');
+      
+      if (totpFactor) {
+        const { error } = await supabase.auth.mfa.unenroll({
+          factorId: totpFactor.id
+        });
+        
+        if (error) throw error;
+      }
+
+      await updateSettings({ two_factor_auth: false });
+      setIs2FAEnabled(false);
+      setIs2FADialogOpen(false);
+      setVerificationCode('');
+      setBackupCodes([]);
+
+      toast({
+        title: "Success",
+        description: "Two-factor authentication has been disabled",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to disable 2FA: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied",
+      description: "Copied to clipboard",
+    });
+  };
+
+  const downloadBackupCodes = () => {
+    const codesText = backupCodes.join('\n');
+    const blob = new Blob([codesText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'backup-codes.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleResetSettings = async () => {
     if (!window.confirm('Are you sure you want to reset all settings to default? This cannot be undone.')) {
       return;
@@ -795,17 +957,39 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security to your account
-                  </p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Two-Factor Authentication</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {is2FAEnabled 
+                        ? "2FA is enabled on your account" 
+                        : "Add an extra layer of security to your account"
+                      }
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {is2FAEnabled ? (
+                      <Button variant="destructive" size="sm" onClick={disable2FA}>
+                        Disable 2FA
+                      </Button>
+                    ) : (
+                      <Button variant="default" size="sm" onClick={initiate2FASetup}>
+                        <QrCode className="mr-2 h-4 w-4" />
+                        Enable 2FA
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Switch
-                  checked={settings?.two_factor_auth || false}
-                  onCheckedChange={(checked) => updateSettings({ two_factor_auth: checked })}
-                />
+                
+                {is2FAEnabled && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Two-factor authentication is active
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -1332,6 +1516,132 @@ const Settings = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 2FA Setup Dialog */}
+      <Dialog open={is2FADialogOpen} onOpenChange={setIs2FADialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Setup Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
+              Scan the QR code with your authenticator app and enter the verification code
+            </DialogDescription>
+          </DialogHeader>
+          
+          {!backupCodes.length ? (
+            <div className="space-y-4">
+              {qrCodeUrl && (
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="p-4 bg-white rounded-lg">
+                    <img src={qrCodeUrl} alt="2FA QR Code" className="w-48 h-48" />
+                  </div>
+                  
+                  <div className="space-y-2 w-full">
+                    <Label className="text-sm">Or enter this secret manually:</Label>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        value={totpSecret} 
+                        readOnly 
+                        className="font-mono text-xs"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => copyToClipboard(totpSecret)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label>Enter verification code from your authenticator app:</Label>
+                <InputOTP
+                  maxLength={6}
+                  value={verificationCode}
+                  onChange={setVerificationCode}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 text-green-800 mb-2">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-semibold">2FA Successfully Enabled!</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Please save these backup codes in a secure location. You can use them to access your account if you lose your authenticator device.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Backup Codes</Label>
+                  <Button variant="outline" size="sm" onClick={downloadBackupCodes}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-muted rounded-lg">
+                  {backupCodes.map((code, index) => (
+                    <div key={index} className="font-mono text-sm text-center p-2 bg-background rounded">
+                      {code}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            {!backupCodes.length ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIs2FADialogOpen(false);
+                    setVerificationCode('');
+                    setQrCodeUrl('');
+                    setTotpSecret('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={verify2FASetup}
+                  disabled={verificationCode.length !== 6 || isVerifying2FA}
+                >
+                  {isVerifying2FA ? "Verifying..." : "Verify & Enable"}
+                </Button>
+              </>
+            ) : (
+              <Button 
+                onClick={() => {
+                  setIs2FADialogOpen(false);
+                  setVerificationCode('');
+                  setQrCodeUrl('');
+                  setTotpSecret('');
+                  setBackupCodes([]);
+                }}
+                className="w-full"
+              >
+                Done
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
