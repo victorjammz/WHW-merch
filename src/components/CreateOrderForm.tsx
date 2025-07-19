@@ -70,6 +70,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
 
   // Step 2 - Payment Details
   const [paymentStatus, setPaymentStatus] = useState("not paid");
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
 
   // Form step management
@@ -281,6 +282,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
           items: orderItems as any,
           total_amount: calculateTotal(),
           payment_status: paymentStatus,
+          payment_method: paymentMethod,
           payment_reference: paymentReference
         })
         .select()
@@ -306,6 +308,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       setNotes("");
       setOrderItems([{ id: "1", variant_id: "", quantity: 1, price: 0 }]);
       setPaymentStatus("not paid");
+      setPaymentMethod("");
       setPaymentReference("");
       setCurrentStep(1);
       onSuccess?.();
@@ -606,6 +609,20 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
                     <SelectContent>
                       <SelectItem value="not paid">Not Paid</SelectItem>
                       <SelectItem value="paid">Paid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Paid via</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="card">Card</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
