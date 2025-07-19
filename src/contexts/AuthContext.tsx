@@ -36,8 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [lastActivity, setLastActivity] = useState(Date.now());
   const { toast } = useToast();
 
-  // Idle timeout duration: 5 minutes in milliseconds
-  const IDLE_TIMEOUT = 5 * 60 * 1000;
+  // Idle timeout duration: 30 minutes in milliseconds
+  const IDLE_TIMEOUT = 30 * 60 * 1000;
 
   useEffect(() => {
     // Set up auth state listener FIRST
