@@ -25,8 +25,6 @@ interface AddressSuggestion {
 
 interface ExpandedAddress {
   address: string;
-  city: string;
-  country: string;
   postcode: string;
 }
 
@@ -44,8 +42,6 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [expandedAddress, setExpandedAddress] = useState<ExpandedAddress>({
     address: "",
-    city: "",
-    country: "",
     postcode: ""
   });
 
@@ -96,8 +92,6 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     
     setExpandedAddress({
       address: fullAddress,
-      city: address.city || address.suburb || "",
-      country: address.country || "United Kingdom",
       postcode: address.postcode || postcode
     });
     
@@ -123,8 +117,6 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     setShowExpandedForm(true);
     setExpandedAddress({
       address: "",
-      city: "",
-      country: "United Kingdom",
       postcode: postcode || ""
     });
     setIsOpen(false);
@@ -139,7 +131,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
   };
 
   const handleComplete = () => {
-    if (expandedAddress.address && expandedAddress.city && expandedAddress.postcode) {
+    if (expandedAddress.address && expandedAddress.postcode) {
       onAddressComplete(expandedAddress);
     }
   };
@@ -150,8 +142,6 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     setShowManualEntry(false);
     setExpandedAddress({
       address: "",
-      city: "",
-      country: "",
       postcode: ""
     });
     setSuggestions([]);
@@ -169,49 +159,31 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
         
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <Label htmlFor="address">Street Address</Label>
+            <Label htmlFor="address">Street Address *</Label>
             <Input
               id="address"
               value={expandedAddress.address}
               onChange={(e) => handleExpandedFormChange("address", e.target.value)}
               placeholder="123 Main Street"
+              required
             />
           </div>
           
           <div>
-            <Label htmlFor="city">City</Label>
-            <Input
-              id="city"
-              value={expandedAddress.city}
-              onChange={(e) => handleExpandedFormChange("city", e.target.value)}
-              placeholder="London"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="country">Country</Label>
-            <Input
-              id="country"
-              value={expandedAddress.country}
-              onChange={(e) => handleExpandedFormChange("country", e.target.value)}
-              placeholder="United Kingdom"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="expanded-postcode">Postcode</Label>
+            <Label htmlFor="expanded-postcode">Postcode *</Label>
             <Input
               id="expanded-postcode"
               value={expandedAddress.postcode}
               onChange={(e) => handleExpandedFormChange("postcode", e.target.value)}
               placeholder="SW1A 1AA"
+              required
             />
           </div>
         </div>
         
         <Button 
           onClick={handleComplete}
-          disabled={!expandedAddress.address || !expandedAddress.city || !expandedAddress.postcode}
+          disabled={!expandedAddress.address || !expandedAddress.postcode}
           className="w-full"
         >
           Confirm Address

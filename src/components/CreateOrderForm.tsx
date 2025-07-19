@@ -277,10 +277,24 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     e.preventDefault();
     
     // Validate required fields
-    if (!selectedEvent || !fullName || !email || !phone || !(postcode && address)) {
+    if (!selectedEvent || !fullName || !email || !phone || !address || !postcode) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate that at least one item with a selected variant exists
+    const validItems = items.filter(item => 
+      item.variant_id && item.quantity > 0
+    );
+    
+    if (validItems.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one product item for the order",
         variant: "destructive"
       });
       return;
@@ -311,9 +325,6 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     setIsSubmitting(true);
     
     try {
-      const validItems = items.filter(item => 
-        item.variant_id && item.quantity > 0
-      );
       
       const orderData = {
         event_name: selectedEvent.name,
@@ -453,7 +464,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       </div>
 
       <div className="space-y-4">
-        <Label className="text-base font-medium">Address Information</Label>
+        <Label className="text-base font-medium">Address Information *</Label>
         <PostcodeAutocomplete
           onAddressComplete={(addressData) => {
             setAddress(addressData.address);
@@ -466,22 +477,24 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         {(address || postcode) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
             <div className="space-y-2">
-              <Label htmlFor="address-display">Address</Label>
+              <Label htmlFor="address-display">Address *</Label>
               <Input
                 id="address-display"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Address will be filled automatically"
+                required
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="postcode-display">Postcode</Label>
+              <Label htmlFor="postcode-display">Postcode *</Label>
               <Input
                 id="postcode-display"
                 value={postcode}
                 onChange={(e) => setPostcode(e.target.value)}
                 placeholder="Postcode will be filled automatically"
+                required
               />
             </div>
           </div>
