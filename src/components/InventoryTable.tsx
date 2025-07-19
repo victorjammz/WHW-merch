@@ -226,21 +226,21 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
-                  onClick={() => handleSort('name')}
-                >
-                  <div className="flex items-center gap-1">
-                    Product Name
-                    {renderSortIcon('name')}
-                  </div>
-                </TableHead>
-                <TableHead 
                   className="min-w-[100px] hidden sm:table-cell cursor-pointer hover:bg-muted/50 select-none"
                   onClick={() => handleSort('category')}
                 >
                   <div className="flex items-center gap-1">
                     Category
                     {renderSortIcon('category')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="min-w-[150px] cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Product Name
+                    {renderSortIcon('name')}
                   </div>
                 </TableHead>
                 <TableHead 
@@ -331,8 +331,8 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
                     )}
                   </TableCell>
                   <TableCell className="font-mono text-xs md:text-sm">{item.sku}</TableCell>
-                  <TableCell className="font-medium text-sm">{item.name}</TableCell>
                   <TableCell className="hidden sm:table-cell text-sm">{item.category}</TableCell>
+                  <TableCell className="font-medium text-sm">{item.name}</TableCell>
                   <TableCell className="hidden md:table-cell text-sm">{item.size}</TableCell>
                   <TableCell className="hidden md:table-cell text-sm">{item.color}</TableCell>
                   <TableCell className="font-semibold text-sm">{item.quantity}</TableCell>
