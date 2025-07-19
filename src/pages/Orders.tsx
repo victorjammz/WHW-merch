@@ -434,7 +434,7 @@ const Orders = () => {
                     </TableHead>
                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_date")}>
                       <div className="flex items-center gap-2">
-                        Event Date
+                        Date
                         <ArrowUpDown className="h-4 w-4" />
                       </div>
                     </TableHead>
