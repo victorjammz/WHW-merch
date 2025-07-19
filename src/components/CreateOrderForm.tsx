@@ -509,9 +509,9 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="confirmed">Confirmed</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="shipped">Shipped</SelectItem>
+            <SelectItem value="delivered">Delivered</SelectItem>
           </SelectContent>
         </Select>
       </div>

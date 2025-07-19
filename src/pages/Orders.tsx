@@ -158,13 +158,36 @@ const Orders = () => {
     setIsEditOrderOpen(true);
   };
 
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('event_orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Order status updated successfully"
+      });
+
+      fetchOrders(); // Refresh the orders list
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to update order status: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "pending": return "secondary";
-      case "confirmed": return "default";
       case "in_progress": return "outline";
-      case "completed": return "default";
-      case "cancelled": return "destructive";
+      case "shipped": return "default";
+      case "delivered": return "default";
       default: return "secondary";
     }
   };
@@ -172,10 +195,9 @@ const Orders = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending": return <Clock className="h-3 w-3" />;
-      case "confirmed": return <CheckCircle className="h-3 w-3" />;
-      case "in_progress": return <Clock className="h-3 w-3" />;
-      case "completed": return <Check className="h-3 w-3" />;
-      case "cancelled": return <XCircle className="h-3 w-3" />;
+      case "in_progress": return <ArrowRight className="h-3 w-3" />;
+      case "shipped": return <ArrowRight className="h-3 w-3" />;
+      case "delivered": return <Check className="h-3 w-3" />;
       default: return <Clock className="h-3 w-3" />;
     }
   };
@@ -270,8 +292,8 @@ const Orders = () => {
 
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o => o.status === "pending").length;
-  const confirmedOrders = orders.filter(o => o.status === "confirmed").length;
   const inProgressOrders = orders.filter(o => o.status === "in_progress").length;
+  const shippedOrders = orders.filter(o => o.status === "shipped").length;
 
   if (isLoading) {
     return (
@@ -318,18 +340,6 @@ const Orders = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed Orders</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{confirmedOrders}</div>
-            <p className="text-xs text-muted-foreground">
-              Ready to process
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -337,6 +347,18 @@ const Orders = () => {
             <div className="text-2xl font-bold text-blue-600">{inProgressOrders}</div>
             <p className="text-xs text-muted-foreground">
               Currently processing
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Shipped Orders</CardTitle>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{shippedOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              Out for delivery
             </p>
           </CardContent>
         </Card>
@@ -399,10 +421,9 @@ const Orders = () => {
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
@@ -480,12 +501,47 @@ const Orders = () => {
                       <TableCell>{new Date(order.event_date).toLocaleDateString()}</TableCell>
                       <TableCell>{Array.isArray(order.items) ? order.items.length : 0} items</TableCell>
                       <TableCell>{formatPrice(order.total_amount)}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">
-                          {getStatusIcon(order.status)}
-                          {order.status}
-                        </Badge>
-                      </TableCell>
+                       <TableCell>
+                         <Select 
+                           value={order.status} 
+                           onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
+                         >
+                           <SelectTrigger className="w-32">
+                             <SelectValue>
+                               <div className="flex items-center gap-1">
+                                 {getStatusIcon(order.status)}
+                                 <span className="capitalize">{order.status.replace('_', ' ')}</span>
+                               </div>
+                             </SelectValue>
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="pending">
+                               <div className="flex items-center gap-2">
+                                 <Clock className="h-3 w-3" />
+                                 Pending
+                               </div>
+                             </SelectItem>
+                             <SelectItem value="in_progress">
+                               <div className="flex items-center gap-2">
+                                 <ArrowRight className="h-3 w-3" />
+                                 In Progress
+                               </div>
+                             </SelectItem>
+                             <SelectItem value="shipped">
+                               <div className="flex items-center gap-2">
+                                 <ArrowRight className="h-3 w-3" />
+                                 Shipped
+                               </div>
+                             </SelectItem>
+                             <SelectItem value="delivered">
+                               <div className="flex items-center gap-2">
+                                 <Check className="h-3 w-3" />
+                                 Delivered
+                               </div>
+                             </SelectItem>
+                           </SelectContent>
+                         </Select>
+                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <Button
@@ -573,10 +629,9 @@ const Orders = () => {
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="shipped">Shipped</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
