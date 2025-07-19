@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Upload, Image, Trash2, Camera, FolderOpen, Check, ChevronsUpDown, Plus, Edit, Save } from "lucide-react";
+import { X, Upload, Image, Trash2, Camera, FolderOpen, Check, ChevronsUpDown, Plus, Edit, Save, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -180,6 +186,28 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
     setNewCategoryName(category.name);
     setNewCategoryDescription(category.description || "");
     setOpenCategoryDialog(true);
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', categoryId);
+
+    if (error) {
+      toast({
+        title: "Error deleting category",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+    toast({
+      title: "Success",
+      description: "Category deleted successfully"
+    });
   };
 
   const resetCategoryDialog = () => {
@@ -447,31 +475,51 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
                 </DialogContent>
               </Dialog>
             </div>
-            <Select value={formData.category} onValueChange={(value) => handleChange("category", value)}>
-              <SelectTrigger className="bg-background border border-border">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border border-border z-50">
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.name}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{category.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 ml-2 opacity-50 hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditDialog(category);
-                        }}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={formData.category} onValueChange={(value) => handleChange("category", value)}>
+                <SelectTrigger className="bg-background border border-border flex-1">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border border-border z-50">
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.category && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-10 w-10 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-background border border-border">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const category = categories.find(cat => cat.name === formData.category);
+                        if (category) openEditDialog(category);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Category
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const category = categories.find(cat => cat.name === formData.category);
+                        if (category) handleDeleteCategory(category.id);
+                      }}
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Category
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="size">Size</Label>
