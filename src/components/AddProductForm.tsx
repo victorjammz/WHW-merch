@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Upload, Image, Trash2, Camera, FolderOpen, Check, ChevronsUpDown, Plus, Edit, Save, MoreVertical } from "lucide-react";
+import { X, Upload, Image, Trash2, Camera, FolderOpen, Check, ChevronsUpDown, Plus, Edit, Save, MoreVertical, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -308,6 +309,32 @@ export function AddProductForm({ onAdd, onCancel }: AddProductFormProps) {
     updatedVariants[index] = { ...updatedVariants[index], [field]: value };
     setVariants(updatedVariants);
   };
+
+  // Check for duplicate color/size combinations
+  const getDuplicateVariants = () => {
+    const combinations = new Map<string, number[]>();
+    
+    variants.forEach((variant, index) => {
+      if (variant.color && variant.size) {
+        const key = `${variant.color}-${variant.size}`;
+        if (!combinations.has(key)) {
+          combinations.set(key, []);
+        }
+        combinations.get(key)!.push(index);
+      }
+    });
+    
+    return Array.from(combinations.entries())
+      .filter(([_, indices]) => indices.length > 1)
+      .reduce((acc, [combination, indices]) => {
+        indices.forEach(index => {
+          acc.set(index, combination);
+        });
+        return acc;
+      }, new Map<number, string>());
+  };
+
+  const duplicateVariants = getDuplicateVariants();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -625,81 +652,95 @@ export function AddProductForm({ onAdd, onCancel }: AddProductFormProps) {
           </div>
           
           <div className="space-y-3">
-            {variants.map((variant, index) => (
-              <Card key={index} className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                  <div className="space-y-2">
-                    <Label>Color</Label>
-                    <Select 
-                      value={variant.color} 
-                      onValueChange={(value) => updateVariant(index, "color", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select color" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {colors.map((color) => (
-                          <SelectItem key={color} value={color}>{color}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            {variants.map((variant, index) => {
+              const isDuplicate = duplicateVariants.has(index);
+              const duplicateCombination = duplicateVariants.get(index);
+              
+              return (
+                <Card key={index} className={cn("p-4", isDuplicate && "border-warning bg-warning/5")}>
+                  {isDuplicate && (
+                    <Alert className="mb-4 border-warning bg-warning/10">
+                      <AlertTriangle className="h-4 w-4 text-warning" />
+                      <AlertDescription className="text-warning-foreground">
+                        Duplicate variant detected: {duplicateCombination?.replace('-', ' / ')}. This may be a duplicate entry.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   
-                  <div className="space-y-2">
-                    <Label>Size</Label>
-                    <Select 
-                      value={variant.size} 
-                      onValueChange={(value) => updateVariant(index, "size", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sizes.map((size) => (
-                          <SelectItem key={size} value={size}>{size}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Price ({getCurrencySymbol(currency)})</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={variant.price}
-                      onChange={(e) => updateVariant(index, "price", e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Quantity</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={variant.quantity}
-                      onChange={(e) => updateVariant(index, "quantity", e.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  
-                  <div>
-                    {variants.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeVariant(index)}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                    <div className="space-y-2">
+                      <Label>Color</Label>
+                      <Select 
+                        value={variant.color} 
+                        onValueChange={(value) => updateVariant(index, "color", value)}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {colors.map((color) => (
+                            <SelectItem key={color} value={color}>{color}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Size</Label>
+                      <Select 
+                        value={variant.size} 
+                        onValueChange={(value) => updateVariant(index, "size", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sizes.map((size) => (
+                            <SelectItem key={size} value={size}>{size}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Price ({getCurrencySymbol(currency)})</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={variant.price}
+                        onChange={(e) => updateVariant(index, "price", e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Quantity</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={variant.quantity}
+                        onChange={(e) => updateVariant(index, "quantity", e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    
+                    <div>
+                      {variants.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeVariant(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         </div>
 
