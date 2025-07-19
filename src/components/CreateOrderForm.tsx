@@ -21,11 +21,10 @@ interface CreateOrderFormProps {
 
 interface OrderItem {
   id: string;
-  category: string;
-  product_id: string;
+  variant_id: string;
   product_name: string;
-  color: string;
-  size: string;
+  variant_display: string; // e.g., "Red - Large"
+  sku: string;
   quantity: number;
   price: number;
   available_stock: number;
@@ -43,15 +42,15 @@ interface Category {
   name: string;
 }
 
-interface InventoryItem {
+interface ProductVariant {
   id: string;
-  name: string;
-  category: string;
-  color: string;
-  size: string;
+  sku: string;
+  product_id: string;
+  product_name: string;
+  color: string | null;
+  size: string | null;
   quantity: number;
   price: number;
-  status: string;
 }
 
 export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
@@ -69,11 +68,10 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [items, setItems] = useState<OrderItem[]>([
     { 
       id: "1", 
-      category: "", 
-      product_id: "", 
+      variant_id: "", 
       product_name: "", 
-      color: "", 
-      size: "", 
+      variant_display: "",
+      sku: "",
       quantity: 1, 
       price: 0, 
       available_stock: 0 
@@ -81,7 +79,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   ]);
   const [events, setEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
   const [eventSearchOpen, setEventSearchOpen] = useState(false);
   
   const { toast } = useToast();
@@ -120,11 +118,11 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     }
   };
 
-  // Fetch events, categories, and inventory on component mount
+  // Fetch events, categories, and product variants on component mount
   useEffect(() => {
     fetchEvents();
     fetchCategories();
-    fetchInventory();
+    fetchProductVariants();
   }, []);
 
   const fetchEvents = async () => {
@@ -165,20 +163,43 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     }
   };
 
-  const fetchInventory = async () => {
+  const fetchProductVariants = async () => {
     try {
       const { data, error } = await supabase
-        .from('inventory')
-        .select('id, name, category, color, size, quantity, price, status')
-        .order('name', { ascending: true });
+        .from('product_variants')
+        .select(`
+          id,
+          sku,
+          product_id,
+          color,
+          size,
+          quantity,
+          price,
+          products!inner(name)
+        `)
+        .gt('quantity', 0) // Only show in-stock variants
+        .order('products(name)', { ascending: true });
 
       if (error) throw error;
-      setInventory(data || []);
+      
+      // Transform the data to include product name
+      const transformedData = (data || []).map(variant => ({
+        id: variant.id,
+        sku: variant.sku,
+        product_id: variant.product_id,
+        product_name: variant.products.name,
+        color: variant.color,
+        size: variant.size,
+        quantity: variant.quantity,
+        price: variant.price
+      }));
+      
+      setProductVariants(transformedData);
     } catch (error) {
-      console.error('Error fetching inventory:', error);
+      console.error('Error fetching product variants:', error);
       toast({
         title: "Error",
-        description: "Failed to load inventory",
+        description: "Failed to load product variants",
         variant: "destructive"
       });
     }
@@ -187,11 +208,10 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const addItem = () => {
     const newItem: OrderItem = {
       id: Date.now().toString(),
-      category: "",
-      product_id: "",
+      variant_id: "",
       product_name: "",
-      color: "",
-      size: "",
+      variant_display: "",
+      sku: "",
       quantity: 1,
       price: 0,
       available_stock: 0
@@ -210,40 +230,16 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         
-        // If category changes, reset product selection
-        if (field === 'category') {
-          updatedItem.product_id = "";
-          updatedItem.product_name = "";
-          updatedItem.color = "";
-          updatedItem.size = "";
-          updatedItem.price = 0;
-          updatedItem.available_stock = 0;
-        }
-        
-        // If product changes, update price and stock info
-        if (field === 'product_id') {
-          const selectedProduct = inventory.find(inv => 
-            inv.id === value && 
-            inv.color === item.color && 
-            inv.size === item.size
-          );
-          if (selectedProduct) {
-            updatedItem.product_name = selectedProduct.name;
-            updatedItem.price = selectedProduct.price;
-            updatedItem.available_stock = selectedProduct.quantity;
-          }
-        }
-        
-        // If color or size changes, update stock and price
-        if (field === 'color' || field === 'size') {
-          const selectedProduct = inventory.find(inv => 
-            inv.id === item.product_id && 
-            inv.color === (field === 'color' ? value : item.color) && 
-            inv.size === (field === 'size' ? value : item.size)
-          );
-          if (selectedProduct) {
-            updatedItem.price = selectedProduct.price;
-            updatedItem.available_stock = selectedProduct.quantity;
+        // If variant_id changes, update all related fields
+        if (field === 'variant_id') {
+          const selectedVariant = productVariants.find(variant => variant.id === value);
+          if (selectedVariant) {
+            updatedItem.product_name = selectedVariant.product_name;
+            updatedItem.variant_display = `${selectedVariant.color || 'No Color'} - ${selectedVariant.size || 'No Size'}`;
+            updatedItem.sku = selectedVariant.sku;
+            updatedItem.price = selectedVariant.price;
+            updatedItem.available_stock = selectedVariant.quantity;
+            updatedItem.quantity = Math.min(updatedItem.quantity, selectedVariant.quantity);
           }
         }
         
@@ -257,40 +253,22 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     return items.reduce((total, item) => total + (item.quantity * item.price), 0);
   };
 
-  const getProductsByCategory = (category: string) => {
-    return inventory
-      .filter(item => item.category === category)
-      .reduce((unique, item) => {
-        if (!unique.find(u => u.id === item.id && u.name === item.name)) {
-          unique.push({ id: item.id, name: item.name });
-        }
-        return unique;
-      }, [] as { id: string; name: string }[]);
+  const getVariantDisplayText = (variant: ProductVariant) => {
+    const colorSize = [variant.color, variant.size].filter(Boolean).join(' - ');
+    return `${variant.product_name} (${colorSize || 'Standard'}) - £${variant.price.toFixed(2)} - Stock: ${variant.quantity}`;
   };
 
-  const getColorsByProduct = (productId: string) => {
-    return [...new Set(inventory
-      .filter(item => item.id === productId)
-      .map(item => item.color)
-      .filter(color => color && color.trim() !== "")
-    )];
-  };
-
-  const getSizesByProductAndColor = (productId: string, color: string) => {
-    return [...new Set(inventory
-      .filter(item => item.id === productId && item.color === color)
-      .map(item => item.size)
-      .filter(size => size && size.trim() !== "")
-    )];
-  };
-
-  const getStockLevel = (productId: string, color: string, size: string) => {
-    const item = inventory.find(inv => 
-      inv.id === productId && 
-      inv.color === color && 
-      inv.size === size
-    );
-    return item ? item.quantity : 0;
+  const getFilteredVariants = (searchTerm: string = '') => {
+    return productVariants.filter(variant => {
+      if (!searchTerm) return true;
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        variant.product_name.toLowerCase().includes(searchLower) ||
+        variant.sku.toLowerCase().includes(searchLower) ||
+        (variant.color && variant.color.toLowerCase().includes(searchLower)) ||
+        (variant.size && variant.size.toLowerCase().includes(searchLower))
+      );
+    });
   };
 
   const isLowStock = (stock: number) => stock < 15;
@@ -334,7 +312,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     
     try {
       const validItems = items.filter(item => 
-        item.category && item.product_id && item.quantity > 0
+        item.variant_id && item.quantity > 0
       );
       
       const orderData = {
@@ -537,93 +515,70 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         
         {items.map((item, index) => (
           <div key={item.id} className="border rounded-lg p-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Category Selection */}
-              <div className="space-y-2">
-                <Label className="text-sm">Category *</Label>
-                <Select 
-                  value={item.category} 
-                  onValueChange={(value) => updateItem(item.id, "category", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Product Selection */}
-              <div className="space-y-2">
-                <Label className="text-sm">Product *</Label>
-                <Select 
-                  value={item.product_id} 
-                  onValueChange={(value) => updateItem(item.id, "product_id", value)}
-                  disabled={!item.category}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {getProductsByCategory(item.category).map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Color Selection */}
-              <div className="space-y-2">
-                <Label className="text-sm">Color *</Label>
-                <Select 
-                  value={item.color} 
-                  onValueChange={(value) => updateItem(item.id, "color", value)}
-                  disabled={!item.product_id}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select color" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {getColorsByProduct(item.product_id).map((color) => (
-                      <SelectItem key={color} value={color}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Product Variant Selection - Single Dropdown */}
+            <div className="space-y-2">
+              <Label className="text-sm">Select Product Variant *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between text-left font-normal"
+                  >
+                    {item.variant_id ? 
+                      `${item.product_name} (${item.variant_display}) - ${item.sku}` : 
+                      "Select a product variant..."
+                    }
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search products..." />
+                    <CommandList>
+                      <CommandEmpty>No variants found.</CommandEmpty>
+                      <CommandGroup>
+                        {getFilteredVariants().map((variant) => (
+                          <CommandItem
+                            key={variant.id}
+                            value={getVariantDisplayText(variant)}
+                            onSelect={() => updateItem(item.id, "variant_id", variant.id)}
+                            className="flex flex-col items-start space-y-1 p-3"
+                          >
+                            <div className="flex items-center space-x-2 w-full">
+                              <Check
+                                className={cn(
+                                  "h-4 w-4",
+                                  item.variant_id === variant.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium">{variant.product_name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {variant.color && variant.size ? 
+                                    `${variant.color} - ${variant.size}` : 
+                                    (variant.color || variant.size || 'Standard')
+                                  } • £{variant.price.toFixed(2)} • SKU: {variant.sku}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {variant.quantity} in stock
+                                  {variant.quantity < 15 && (
+                                    <span className="text-orange-600 ml-2">⚠ Low stock</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Size Selection */}
-              <div className="space-y-2">
-                <Label className="text-sm">Size *</Label>
-                <Select 
-                  value={item.size} 
-                  onValueChange={(value) => updateItem(item.id, "size", value)}
-                  disabled={!item.color}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {getSizesByProductAndColor(item.product_id, item.color).map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Quantity */}
+            {/* Quantity and Price Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm">Quantity *</Label>
                 <Input
@@ -632,21 +587,25 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
                   max={item.available_stock}
                   value={item.quantity}
                   onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
+                  disabled={!item.variant_id}
                 />
+                {item.available_stock > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    Max: {item.available_stock} available
+                  </div>
+                )}
               </div>
 
-              {/* Price */}
               <div className="space-y-2">
                 <Label className="text-sm">Price (each)</Label>
-                <div className="text-sm font-medium py-2">
+                <div className="text-sm font-medium py-2 px-3 bg-muted/50 rounded">
                   £{item.price.toFixed(2)}
                 </div>
               </div>
 
-              {/* Subtotal */}
               <div className="space-y-2">
                 <Label className="text-sm">Subtotal</Label>
-                <div className="text-sm font-medium py-2">
+                <div className="text-sm font-semibold py-2 px-3 bg-primary/10 rounded">
                   £{(item.quantity * item.price).toFixed(2)}
                 </div>
               </div>
@@ -660,13 +619,6 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
                   Low stock warning: Only {item.available_stock} units available
                 </AlertDescription>
               </Alert>
-            )}
-
-            {/* Stock Info */}
-            {item.available_stock > 0 && (
-              <div className="text-sm text-muted-foreground">
-                Available stock: {item.available_stock} units
-              </div>
             )}
 
             {/* Remove Item Button */}
