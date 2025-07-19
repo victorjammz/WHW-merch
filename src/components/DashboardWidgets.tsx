@@ -113,7 +113,7 @@ export const DashboardWidgets = ({ inventoryData, pendingOrdersCount }: Dashboar
             icon={Calendar}
             borderColor="border-l-info"
             iconColor="text-info"
-            onClick={() => navigate('/event-orders')}
+            onClick={() => navigate('/orders')}
           />
         );
       case "inventory-table":
