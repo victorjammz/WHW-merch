@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import QRCode from "qrcode";
 import { Save, User, Bell, Shield, Upload, Trash2, Camera, Globe, Palette, Key, Download, Upload as UploadIcon, RefreshCw, Calendar, MapPin, Plus, Edit, Trash, QrCode, Copy, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,8 +59,9 @@ const Settings = () => {
   
   // 2FA state
   const [is2FADialogOpen, setIs2FADialogOpen] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [totpSecret, setTotpSecret] = useState('');
+  const [totpUri, setTotpUri] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying2FA, setIsVerifying2FA] = useState(false);
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
@@ -537,8 +539,14 @@ const Settings = () => {
 
       if (error) throw error;
 
+      // Set the secret and URI
       setTotpSecret(data.totp.secret);
-      setQrCodeUrl(data.totp.uri);
+      setTotpUri(data.totp.uri);
+      
+      // Generate QR code data URL
+      const qrDataUrl = await QRCode.toDataURL(data.totp.uri);
+      setQrCodeDataUrl(qrDataUrl);
+      
       setIs2FADialogOpen(true);
     } catch (error: any) {
       toast({
@@ -625,6 +633,9 @@ const Settings = () => {
       setIs2FADialogOpen(false);
       setVerificationCode('');
       setBackupCodes([]);
+      setQrCodeDataUrl('');
+      setTotpSecret('');
+      setTotpUri('');
 
       toast({
         title: "Success",
@@ -1529,10 +1540,10 @@ const Settings = () => {
           
           {!backupCodes.length ? (
             <div className="space-y-4">
-              {qrCodeUrl && (
+              {qrCodeDataUrl && (
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="p-4 bg-white rounded-lg">
-                    <img src={qrCodeUrl} alt="2FA QR Code" className="w-48 h-48" />
+                  <div className="p-4 bg-white rounded-lg border">
+                    <img src={qrCodeDataUrl} alt="2FA QR Code" className="w-48 h-48" />
                   </div>
                   
                   <div className="space-y-2 w-full">
@@ -1612,8 +1623,9 @@ const Settings = () => {
                   onClick={() => {
                     setIs2FADialogOpen(false);
                     setVerificationCode('');
-                    setQrCodeUrl('');
+                    setQrCodeDataUrl('');
                     setTotpSecret('');
+                    setTotpUri('');
                   }}
                 >
                   Cancel
@@ -1630,8 +1642,9 @@ const Settings = () => {
                 onClick={() => {
                   setIs2FADialogOpen(false);
                   setVerificationCode('');
-                  setQrCodeUrl('');
+                  setQrCodeDataUrl('');
                   setTotpSecret('');
+                  setTotpUri('');
                   setBackupCodes([]);
                 }}
                 className="w-full"
