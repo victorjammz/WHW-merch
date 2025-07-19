@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit, Star, Trash2, Undo } from "lucide-react";
+import { Plus, Search, Download, Calendar, Clock, CheckCircle, XCircle, User, Mail, Phone, MapPin, ArrowRight, ArrowLeft, Check, ChevronsUpDown, Eye, Edit, Star, Trash2, Undo, ArrowUpDown } from "lucide-react";
 import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -28,6 +28,9 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState("active");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [dateFilter, setDateFilter] = useState("all");
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
   const [isViewOrderOpen, setIsViewOrderOpen] = useState(false);
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
@@ -175,12 +178,82 @@ const Orders = () => {
     }
   };
 
-  const filteredOrders = (activeTab === "active" ? orders : deletedOrders).filter(order => {
-    const matchesSearch = order.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.event_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === "all" || order.status === selectedStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const filteredAndSortedOrders = (activeTab === "active" ? orders : deletedOrders)
+    .filter(order => {
+      const matchesSearch = order.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.event_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = selectedStatus === "all" || order.status === selectedStatus;
+      
+      let matchesDate = true;
+      if (dateFilter !== "all") {
+        const orderDate = new Date(order.event_date);
+        const today = new Date();
+        const daysDiff = Math.ceil((orderDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        switch (dateFilter) {
+          case "today":
+            matchesDate = daysDiff === 0;
+            break;
+          case "week":
+            matchesDate = daysDiff >= 0 && daysDiff <= 7;
+            break;
+          case "month":
+            matchesDate = daysDiff >= 0 && daysDiff <= 30;
+            break;
+          case "past":
+            matchesDate = daysDiff < 0;
+            break;
+        }
+      }
+      
+      return matchesSearch && matchesStatus && matchesDate;
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case "client_name":
+          aValue = a.client_name?.toLowerCase() || "";
+          bValue = b.client_name?.toLowerCase() || "";
+          break;
+        case "event_name":
+          aValue = a.event_name?.toLowerCase() || "";
+          bValue = b.event_name?.toLowerCase() || "";
+          break;
+        case "event_date":
+          aValue = new Date(a.event_date).getTime();
+          bValue = new Date(b.event_date).getTime();
+          break;
+        case "total_amount":
+          aValue = parseFloat(a.total_amount) || 0;
+          bValue = parseFloat(b.total_amount) || 0;
+          break;
+        case "status":
+          aValue = a.status || "";
+          bValue = b.status || "";
+          break;
+        case "created_at":
+        default:
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+      }
+      
+      if (sortOrder === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
 
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o => o.status === "pending").length;
@@ -277,8 +350,8 @@ const Orders = () => {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-4">
-                <div className="relative flex-1">
+              <div className="flex gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search orders..."
@@ -300,22 +373,64 @@ const Orders = () => {
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Dates</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">Next 7 Days</SelectItem>
+                    <SelectItem value="month">Next 30 Days</SelectItem>
+                    <SelectItem value="past">Past Events</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Event Name</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Event Date</TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("created_at")}>
+                      <div className="flex items-center gap-2">
+                        Order ID
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_name")}>
+                      <div className="flex items-center gap-2">
+                        Event Name
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("client_name")}>
+                      <div className="flex items-center gap-2">
+                        Client
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_date")}>
+                      <div className="flex items-center gap-2">
+                        Event Date
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
                     <TableHead>Items</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("total_amount")}>
+                      <div className="flex items-center gap-2">
+                        Total
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("status")}>
+                      <div className="flex items-center gap-2">
+                        Status
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => (
+                  {filteredAndSortedOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.id}</TableCell>
                       <TableCell>
@@ -387,7 +502,7 @@ const Orders = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {filteredOrders.length === 0 && (
+                  {filteredAndSortedOrders.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                         No orders found
