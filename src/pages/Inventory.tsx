@@ -178,6 +178,45 @@ const Inventory = () => {
            filters.stockLevel;
   };
 
+  const exportToCSV = () => {
+    // Create CSV content
+    const headers = ['SKU', 'Name', 'Category', 'Size', 'Color', 'Quantity', 'Price', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredInventory.map(item => [
+        item.sku,
+        `"${item.name}"`, // Wrap in quotes in case of commas
+        item.category,
+        item.size || '',
+        item.color || '',
+        item.quantity,
+        item.price,
+        item.status
+      ].join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    // Generate filename with current date
+    const now = new Date();
+    const timestamp = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    link.setAttribute('download', `inventory-export-${timestamp}.csv`);
+    
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Successful",
+      description: `Exported ${filteredInventory.length} items to CSV file`,
+    });
+  };
+
   // Calculate stats based on filtered data
   const totalItems = filteredInventory.reduce((sum, item) => sum + item.quantity, 0);
   const totalProducts = filteredInventory.length;
@@ -428,7 +467,12 @@ const Inventory = () => {
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 sm:flex-none"
+                onClick={exportToCSV}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
