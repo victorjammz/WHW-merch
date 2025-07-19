@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { formatDateWithUserSettings } from "@/utils/dateFormatting";
+import { CreateOrderForm } from "@/components/CreateOrderForm";
 
 const Orders = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -348,10 +349,29 @@ const Orders = () => {
                   View and manage all active orders and special requests
                 </CardDescription>
               </div>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                New Order
-              </Button>
+              <Dialog open={isCreateOrderOpen} onOpenChange={setIsCreateOrderOpen}>
+                <DialogTrigger asChild>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Order
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Order</DialogTitle>
+                    <DialogDescription>
+                      Add a new event order to the system
+                    </DialogDescription>
+                  </DialogHeader>
+                  <CreateOrderForm 
+                    onSuccess={() => {
+                      setIsCreateOrderOpen(false);
+                      fetchOrders();
+                    }}
+                    onCancel={() => setIsCreateOrderOpen(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-4 flex-wrap">
