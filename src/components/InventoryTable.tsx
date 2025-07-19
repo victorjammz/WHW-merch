@@ -392,7 +392,7 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
 
       {/* Barcode Generator Dialog */}
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Generate Barcode</DialogTitle>
             <DialogDescription>
@@ -400,13 +400,15 @@ export function InventoryTable({ data, onRefresh }: InventoryTableProps) {
             </DialogDescription>
           </DialogHeader>
           {selectedItem && (
-            <BarcodeGenerator 
-              defaultValue={selectedItem.sku} 
-              onGenerate={(code, type) => {
-                // Optionally update the item's barcode in the database
-                console.log(`Generated ${type} barcode: ${code} for ${selectedItem.name}`);
-              }}
-            />
+            <div className="py-2">
+              <BarcodeGenerator 
+                defaultValue={selectedItem.sku} 
+                onGenerate={(code, type) => {
+                  // Optionally update the item's barcode in the database
+                  console.log(`Generated ${type} barcode: ${code} for ${selectedItem.name}`);
+                }}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
