@@ -25,6 +25,7 @@ interface AddressSuggestion {
 
 interface ExpandedAddress {
   address: string;
+  city: string;
   postcode: string;
   country: string;
 }
@@ -43,6 +44,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [expandedAddress, setExpandedAddress] = useState<ExpandedAddress>({
     address: "",
+    city: "",
     postcode: "",
     country: "United Kingdom"
   });
@@ -94,6 +96,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     
     setExpandedAddress({
       address: fullAddress,
+      city: address.city || address.suburb || "",
       postcode: address.postcode || postcode,
       country: address.country || "United Kingdom"
     });
@@ -120,6 +123,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     setShowExpandedForm(true);
     setExpandedAddress({
       address: "",
+      city: "",
       postcode: postcode || "",
       country: "United Kingdom"
     });
@@ -135,7 +139,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     setExpandedAddress(updatedAddress);
     
     // Auto-update parent component as user types
-    if (updatedAddress.address && updatedAddress.postcode && updatedAddress.country) {
+    if (updatedAddress.address && updatedAddress.city && updatedAddress.postcode && updatedAddress.country) {
       onAddressComplete(updatedAddress);
     }
   };
@@ -146,6 +150,7 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
     setShowManualEntry(false);
     setExpandedAddress({
       address: "",
+      city: "",
       postcode: "",
       country: "United Kingdom"
     });
@@ -170,6 +175,17 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
               value={expandedAddress.address}
               onChange={(e) => handleExpandedFormChange("address", e.target.value)}
               placeholder="123 Main Street"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="city">City *</Label>
+            <Input
+              id="city"
+              value={expandedAddress.city}
+              onChange={(e) => handleExpandedFormChange("city", e.target.value)}
+              placeholder="London"
               required
             />
           </div>
