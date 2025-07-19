@@ -325,6 +325,10 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     setIsSubmitting(true);
     
     try {
+      // Filter valid items for insertion
+      const validItems = items.filter(item => 
+        item.variant_id && item.quantity > 0
+      );
       
       const orderData = {
         event_name: selectedEvent.name,
