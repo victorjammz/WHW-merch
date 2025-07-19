@@ -323,54 +323,61 @@ export function AddInventoryForm({ onAdd, onCancel }: AddInventoryFormProps) {
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
         <div className="space-y-2">
           <Label htmlFor="name">Product Name *</Label>
-          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={openCombobox}
-                className="w-full justify-between"
-              >
-                {formData.name || "e.g., Classic Cotton T-Shirt"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput 
-                  placeholder="Search products..." 
-                  value={formData.name}
-                  onValueChange={(value) => handleChange("name", value)}
-                />
-                <CommandList>
-                  <CommandEmpty>No product found.</CommandEmpty>
-                  <CommandGroup>
-                    {existingProductNames
-                      .filter(name => name.toLowerCase().includes(formData.name.toLowerCase()))
-                      .map((name) => (
-                        <CommandItem
-                          key={name}
-                          value={name}
-                          onSelect={(currentValue) => {
-                            handleChange("name", currentValue);
-                            setOpenCombobox(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              formData.name === name ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {name}
-                        </CommandItem>
-                      ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <p className="text-xs text-muted-foreground">SKU will be automatically generated</p>
+          <div className="relative">
+            <Input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => {
+                handleChange("name", e.target.value);
+                setOpenCombobox(e.target.value.length > 0);
+              }}
+              onFocus={() => setOpenCombobox(formData.name.length > 0)}
+              onBlur={() => setTimeout(() => setOpenCombobox(false), 200)}
+              placeholder="Type new product name or select existing..."
+              className="w-full"
+              required
+            />
+            {openCombobox && existingProductNames.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border bg-popover p-0 text-popover-foreground shadow-md">
+                <Command className="border-0">
+                  <CommandList>
+                    <CommandEmpty>No matching products found.</CommandEmpty>
+                    <CommandGroup>
+                      {existingProductNames
+                        .filter(name => 
+                          name.toLowerCase().includes(formData.name.toLowerCase()) &&
+                          name.toLowerCase() !== formData.name.toLowerCase()
+                        )
+                        .slice(0, 8) // Limit to 8 suggestions
+                        .map((name) => (
+                          <CommandItem
+                            key={name}
+                            value={name}
+                            onSelect={() => {
+                              handleChange("name", name);
+                              setOpenCombobox(false);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.name === name ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {name}
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Type to create new product or select from existing suggestions • SKU will be automatically generated
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
