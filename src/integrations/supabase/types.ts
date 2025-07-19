@@ -77,6 +77,57 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          id: string
+          last_order_date: string | null
+          location: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          postcode: string | null
+          status: string
+          total_orders: number
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          last_order_date?: string | null
+          location?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postcode?: string | null
+          status?: string
+          total_orders?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          last_order_date?: string | null
+          location?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postcode?: string | null
+          status?: string
+          total_orders?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_logs: {
         Row: {
           action: string
