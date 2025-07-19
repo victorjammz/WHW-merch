@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Minus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,18 +24,50 @@ interface OrderItem {
   price: number;
 }
 
+interface Event {
+  id: string;
+  name: string;
+  event_date: string;
+  location: string;
+}
+
 export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [eventName, setEventName] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [clientName, setClientName] = useState("");
-  const [eventDate, setEventDate] = useState<Date>();
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<OrderItem[]>([
     { id: "1", name: "", quantity: 1, price: 0 }
   ]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [eventSearchOpen, setEventSearchOpen] = useState(false);
   
   const { toast } = useToast();
+
+  // Fetch events on component mount
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, name, event_date, location')
+        .order('event_date', { ascending: true });
+
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load events",
+        variant: "destructive"
+      });
+    }
+  };
 
   const addItem = () => {
     const newItem: OrderItem = {
@@ -66,7 +98,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!eventName || !clientName || !eventDate) {
+    if (!selectedEvent || !clientName) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -81,9 +113,9 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       const validItems = items.filter(item => item.name.trim() !== "");
       
       const orderData = {
-        event_name: eventName,
+        event_name: selectedEvent.name,
         client_name: clientName,
-        event_date: eventDate.toISOString().split('T')[0],
+        event_date: selectedEvent.event_date,
         status,
         notes: notes || null,
         items: JSON.stringify(validItems), // Convert to JSON string
@@ -118,14 +150,53 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="event-name">Event Name *</Label>
-          <Input
-            id="event-name"
-            value={eventName}
-            onChange={(e) => setEventName(e.target.value)}
-            placeholder="e.g., Annual Conference 2024"
-            required
-          />
+          <Label>Select Event *</Label>
+          <Popover open={eventSearchOpen} onOpenChange={setEventSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={eventSearchOpen}
+                className="w-full justify-between"
+              >
+                {selectedEvent ? selectedEvent.name : "Select event..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search events..." />
+                <CommandList>
+                  <CommandEmpty>No events found.</CommandEmpty>
+                  <CommandGroup>
+                    {events.map((event) => (
+                      <CommandItem
+                        key={event.id}
+                        value={`${event.name} ${event.location}`}
+                        onSelect={() => {
+                          setSelectedEvent(event);
+                          setEventSearchOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedEvent?.id === event.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{event.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(event.event_date), "PPP")} • {event.location}
+                          </span>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         
         <div className="space-y-2">
@@ -140,49 +211,20 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Event Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !eventDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {eventDate ? format(eventDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={eventDate}
-                onSelect={setEventDate}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="status">Status</Label>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-4">
