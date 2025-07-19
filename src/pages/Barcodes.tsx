@@ -73,6 +73,7 @@ const Barcodes = () => {
   useEffect(() => {
     const fetchBarcodes = async () => {
       try {
+        console.log('🔄 Starting to fetch barcodes...');
         const { data, error } = await supabase
           .from('barcodes')
           .select(`
@@ -85,10 +86,17 @@ const Barcodes = () => {
           `)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        console.log('📊 Barcode fetch response:', { data, error });
+        
+        if (error) {
+          console.error('❌ Error in barcode fetch:', error);
+          throw error;
+        }
+        
+        console.log('✅ Successfully fetched barcodes:', data?.length || 0, 'items');
         setBarcodes(data as any || []);
       } catch (error) {
-        console.error('Error fetching barcodes:', error);
+        console.error('💥 Error fetching barcodes:', error);
         toast({
           title: "Error",
           description: "Failed to load barcodes",
