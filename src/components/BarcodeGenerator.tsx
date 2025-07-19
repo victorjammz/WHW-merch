@@ -89,7 +89,12 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
   };
 
   const saveToDatabase = async () => {
+    console.log('🔄 Starting saveToDatabase function...');
+    console.log('User:', user);
+    console.log('Barcode text:', barcodeText);
+    
     if (!user || !barcodeText.trim()) {
+      console.log('❌ Validation failed - missing user or barcode text');
       toast({
         title: "⚠️ Cannot Save",
         description: "Please ensure you're logged in and have a barcode to save",
@@ -100,6 +105,7 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
 
     setIsSaving(true);
     try {
+      console.log('📸 Creating barcode image...');
       // First, create the barcode image and upload it
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -146,53 +152,72 @@ export function BarcodeGenerator({ defaultValue = "", onGenerate }: BarcodeGener
       ctx.fillText(barcodeType, canvas.width / 2, startY + barHeight + 40);
 
       // Convert canvas to blob
+      console.log('🖼️ Converting canvas to blob...');
       const blob = await new Promise<Blob>((resolve) => {
         canvas.toBlob((blob) => resolve(blob!), 'image/png');
       });
 
       // Upload to storage
-      const fileName = `${user.id}/${Date.now()}-${barcodeText}.png`;
+      console.log('☁️ Uploading to storage...');
+      const fileName = `${user.id}/${Date.now()}-${barcodeText.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('barcodes')
         .upload(fileName, blob);
 
-      if (uploadError) throw uploadError;
+      console.log('Storage upload result:', { uploadData, uploadError });
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
+      console.log('🌐 Getting public URL...');
       const { data: { publicUrl } } = supabase.storage
         .from('barcodes')
         .getPublicUrl(fileName);
+      
+      console.log('Public URL:', publicUrl);
 
       // Save to database
-      const { error: dbError } = await supabase
+      console.log('💾 Saving to database...');
+      const barcodeData = {
+        user_id: user.id,
+        sku: sku || null,
+        product_name: productName || null,
+        barcode_text: barcodeText,
+        barcode_type: barcodeType,
+        category: category || null,
+        image_url: publicUrl
+      };
+      
+      console.log('Barcode data to insert:', barcodeData);
+      
+      const { data: insertData, error: dbError } = await supabase
         .from('barcodes')
-        .insert({
-          user_id: user.id,
-          sku: sku || null,
-          product_name: productName || null,
-          barcode_text: barcodeText,
-          barcode_type: barcodeType,
-          category: category || null,
-          image_url: publicUrl
-        });
+        .insert(barcodeData)
+        .select();
 
-      if (dbError) throw dbError;
+      console.log('Database insert result:', { insertData, dbError });
+      
+      if (dbError) {
+        console.error('❌ Database error:', dbError);
+        throw dbError;
+      }
 
+      console.log('✅ Barcode saved successfully!');
       toast({
         title: "✅ Barcode Saved!",
         description: "Barcode has been saved to your library",
       });
 
-      // Reset form fields if desired
-      // setProductName("");
-      // setSku("");
-      // setCategory("");
+      // Call onGenerate callback if provided
+      onGenerate?.(barcodeText, barcodeType);
       
     } catch (error) {
-      console.error('Error saving barcode:', error);
+      console.error('💥 Error saving barcode:', error);
       toast({
         title: "❌ Save Failed",
-        description: "Failed to save barcode to database",
+        description: `Failed to save barcode: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {

@@ -201,12 +201,16 @@ const Barcodes = () => {
               Generate Barcode
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Generate New Barcode</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <BarcodeGenerator />
+              <BarcodeGenerator onGenerate={() => {
+                setIsGenerateDialogOpen(false);
+                // Refresh the barcodes list
+                window.location.reload();
+              }} />
             </div>
           </DialogContent>
         </Dialog>
