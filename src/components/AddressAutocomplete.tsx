@@ -50,42 +50,51 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
   });
 
   const searchPostcodes = useStableCallback(async (query: string) => {
-    if (query.length < 4) {
+    if (query.length < 2) {
       setSuggestions([]);
+      setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Search specifically for postcodes
+      // Search specifically for postcodes with better parameters for responsiveness
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
           query
-        )}&format=json&addressdetails=1&limit=10&countrycodes=gb,ie&class=place&type=postcode`
+        )}&format=json&addressdetails=1&limit=8&countrycodes=gb,ie&class=place&type=postcode`,
+        {
+          signal: AbortController && new AbortController().signal
+        }
       );
       
       if (response.ok) {
         const data = await response.json();
-        setSuggestions(data);
+        // Only update suggestions if the component is still mounted and query hasn't changed
+        setSuggestions(data || []);
       }
     } catch (error) {
-      console.error("Error fetching postcode suggestions:", error);
+      // Don't log abort errors as they're expected when user types quickly
+      if (error.name !== 'AbortError') {
+        console.error("Error fetching postcode suggestions:", error);
+      }
       setSuggestions([]);
     } finally {
       setIsLoading(false);
     }
   });
 
-  const debouncedSearch = useDebounce(searchPostcodes, 200);
+  const debouncedSearch = useDebounce(searchPostcodes, 150);
 
   const handlePostcodeChange = useCallback((inputValue: string) => {
     setPostcode(inputValue);
-    if (inputValue.length >= 4) {
+    if (inputValue.length >= 2) {
       setIsOpen(true);
       debouncedSearch(inputValue);
     } else {
       setIsOpen(false);
       setSuggestions([]);
+      setIsLoading(false);
     }
   }, [debouncedSearch]);
 
@@ -230,8 +239,9 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
                 id="postcode"
                 value={postcode}
                 onChange={(e) => handlePostcodeChange(e.target.value)}
-                placeholder="Enter postcode (e.g., SW1A 1AA)"
+                placeholder="Start typing postcode (e.g., SW1A)"
                 className="pr-10"
+                disabled={isLoading}
               />
               <MapPin className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
@@ -240,8 +250,13 @@ export function PostcodeAutocomplete({ onAddressComplete, className }: PostcodeA
             <Command>
               <CommandList>
                 {isLoading ? (
-                  <CommandEmpty>Searching postcodes...</CommandEmpty>
-                ) : suggestions.length === 0 && postcode.length >= 4 ? (
+                  <CommandEmpty>
+                    <div className="flex items-center gap-2 py-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-primary"></div>
+                      Searching postcodes...
+                    </div>
+                  </CommandEmpty>
+                ) : suggestions.length === 0 && postcode.length >= 2 ? (
                   <CommandEmpty>No postcodes found. Try a different postcode.</CommandEmpty>
                 ) : (
                   <CommandGroup>
