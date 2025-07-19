@@ -180,6 +180,63 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     }, 0);
   };
 
+  const syncCustomerFromOrder = async () => {
+    try {
+      // Check if customer already exists
+      const { data: existingCustomer, error: checkError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      const totalAmount = calculateTotal();
+      const itemCount = orderItems.reduce((total, item) => total + item.quantity, 0);
+
+      if (existingCustomer) {
+        // Update existing customer
+        const { error: updateError } = await supabase
+          .from('customers')
+          .update({
+            name: fullName,
+            phone,
+            address: `${address}, ${city}`,
+            postcode,
+            location: `${city}, ${country}`,
+            total_orders: existingCustomer.total_orders + 1,
+            total_spent: Number(existingCustomer.total_spent) + totalAmount,
+            last_order_date: new Date().toISOString().split('T')[0],
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingCustomer.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Create new customer
+        const { error: insertError } = await supabase
+          .from('customers')
+          .insert({
+            name: fullName,
+            email,
+            phone,
+            address: `${address}, ${city}`,
+            postcode,
+            location: `${city}, ${country}`,
+            total_orders: 1,
+            total_spent: totalAmount,
+            last_order_date: new Date().toISOString().split('T')[0],
+            status: 'active'
+          });
+
+        if (insertError) throw insertError;
+      }
+    } catch (error: any) {
+      console.error('Error syncing customer:', error);
+      // Don't throw - we don't want customer sync failure to prevent order creation
+    }
+  };
+
 
   const handleNextStep = () => {
     // Validate required fields for step 1
@@ -250,6 +307,9 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         .single();
 
       if (error) throw error;
+
+      // Sync customer information to customers table
+      await syncCustomerFromOrder();
 
       toast({
         title: "Success",
