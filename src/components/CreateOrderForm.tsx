@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
 import { Check, ChevronsUpDown, Plus, Minus, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -261,7 +262,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedEvent || !fullName || !email || !phone || !postcode || !address) {
+    if (!selectedEvent || !fullName || !email || !phone || !(postcode && address)) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -406,28 +407,40 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="postcode">Postcode *</Label>
-          <Input
-            id="postcode"
-            value={postcode}
-            onChange={(e) => setPostcode(e.target.value)}
-            placeholder="e.g., SW1A 1AA"
-            required
-          />
-        </div>
+      <div className="space-y-4">
+        <Label className="text-base font-medium">Address Information</Label>
+        <PostcodeAutocomplete
+          onAddressComplete={(addressData) => {
+            setAddress(addressData.address);
+            setPostcode(addressData.postcode);
+          }}
+          className="space-y-4"
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="address">Address *</Label>
-          <Input
-            id="address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="e.g., 123 Main Street, London"
-            required
-          />
-        </div>
+        {/* Show individual fields if they have values */}
+        {(address || postcode) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor="address-display">Address</Label>
+              <Input
+                id="address-display"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Address will be filled automatically"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="postcode-display">Postcode</Label>
+              <Input
+                id="postcode-display"
+                value={postcode}
+                onChange={(e) => setPostcode(e.target.value)}
+                placeholder="Postcode will be filled automatically"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
