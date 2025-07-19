@@ -109,7 +109,11 @@ export type Database = {
       }
       event_orders: {
         Row: {
+          client_address: string | null
+          client_email: string | null
           client_name: string
+          client_phone: string | null
+          client_postcode: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -123,7 +127,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_address?: string | null
+          client_email?: string | null
           client_name: string
+          client_phone?: string | null
+          client_postcode?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -137,7 +145,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_address?: string | null
+          client_email?: string | null
           client_name?: string
+          client_phone?: string | null
+          client_postcode?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
