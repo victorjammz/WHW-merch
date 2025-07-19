@@ -4,15 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
+import { EnhancedItemSelector } from "@/components/EnhancedItemSelector";
 
 interface CreateOrderFormProps {
   onSuccess?: () => void;
@@ -21,6 +16,8 @@ interface CreateOrderFormProps {
 
 interface OrderItem {
   id: string;
+  category: string;
+  product_id: string;
   variant_id: string;
   quantity: number;
   price: number;
@@ -65,7 +62,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    { id: "1", variant_id: "", quantity: 1, price: 0 }
+    { id: "1", category: "", product_id: "", variant_id: "", quantity: 1, price: 0 }
   ]);
 
   // Step 2 - Payment Details
@@ -177,48 +174,12 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     }
   };
 
-  const addItem = () => {
-    const newId = (orderItems.length + 1).toString();
-    setOrderItems([...orderItems, { id: newId, variant_id: "", quantity: 1, price: 0 }]);
-  };
-
-  const removeItem = (id: string) => {
-    if (orderItems.length > 1) {
-      setOrderItems(orderItems.filter(item => item.id !== id));
-    }
-  };
-
-  const updateItem = (id: string, field: keyof OrderItem, value: string | number) => {
-    setOrderItems(orderItems.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        
-        // If variant_id changes, update the price
-        if (field === 'variant_id' && value) {
-          const variant = productVariants.find(v => v.id === value);
-          if (variant) {
-            updatedItem.price = variant.price;
-          }
-        }
-        
-        return updatedItem;
-      }
-      return item;
-    }));
-  };
-
   const calculateTotal = () => {
     return orderItems.reduce((total, item) => {
       return total + (item.price * item.quantity);
     }, 0);
   };
 
-  const getFilteredVariants = (searchTerm: string = '') => {
-    return productVariants.filter(variant => {
-      const searchString = `${variant.product?.name || ''} ${variant.sku} ${variant.size || ''} ${variant.color || ''}`.toLowerCase();
-      return searchString.includes(searchTerm.toLowerCase());
-    });
-  };
 
   const handleNextStep = () => {
     // Validate required fields for step 1
@@ -306,7 +267,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       setCountry("");
       setStatus("pending");
       setNotes("");
-      setOrderItems([{ id: "1", variant_id: "", quantity: 1, price: 0 }]);
+      setOrderItems([{ id: "1", category: "", product_id: "", variant_id: "", quantity: 1, price: 0 }]);
       setPaymentStatus("not paid");
       setPaymentMethod("");
       setPaymentReference("");
@@ -467,111 +428,10 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
           </div>
 
           {/* Order Items */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Order Items</h3>
-              <Button type="button" onClick={addItem} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-            </div>
-            
-            {orderItems.map((item, index) => (
-              <Card key={item.id} className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                  <div className="space-y-2">
-                    <Label>Product Variant *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "justify-between",
-                            !item.variant_id && "text-muted-foreground"
-                          )}
-                        >
-                          {item.variant_id
-                            ? (() => {
-                                const variant = productVariants.find(v => v.id === item.variant_id);
-                                return variant 
-                                  ? `${variant.product?.name} - ${variant.sku} (${variant.size || 'N/A'}, ${variant.color || 'N/A'})`
-                                  : "Select variant...";
-                              })()
-                            : "Select variant..."}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0">
-                        <Command>
-                          <CommandInput placeholder="Search variants..." />
-                          <CommandEmpty>No variant found.</CommandEmpty>
-                          <CommandList>
-                            <CommandGroup>
-                              {getFilteredVariants().map((variant) => (
-                                <CommandItem
-                                  key={variant.id}
-                                  value={`${variant.product?.name} ${variant.sku} ${variant.size} ${variant.color}`}
-                                  onSelect={() => {
-                                    updateItem(item.id, 'variant_id', variant.id);
-                                  }}
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{variant.product?.name}</span>
-                                    <span className="text-sm text-muted-foreground">
-                                      {variant.sku} - {variant.size || 'N/A'}, {variant.color || 'N/A'}
-                                    </span>
-                                    <span className="text-sm font-medium">£{variant.price}</span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Quantity *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Price</Label>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-medium">£{item.price.toFixed(2)}</span>
-                      <Badge variant="secondary">
-                        Total: £{(item.price * item.quantity).toFixed(2)}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => removeItem(item.id)}
-                      disabled={orderItems.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-            
-            <div className="flex justify-end">
-              <div className="text-lg font-semibold">
-                Total: £{calculateTotal().toFixed(2)}
-              </div>
-            </div>
-          </div>
+          <EnhancedItemSelector 
+            items={orderItems}
+            onItemsChange={setOrderItems}
+          />
 
           {/* Notes */}
           <div className="space-y-2">
