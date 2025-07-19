@@ -694,6 +694,47 @@ const Orders = () => {
                   <p className="text-sm text-muted-foreground">{selectedOrder.client_name}</p>
                 </div>
               </div>
+              
+              {/* Contact Information */}
+              <div className="grid grid-cols-2 gap-4">
+                {selectedOrder.client_email && (
+                  <div>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span>{selectedOrder.client_email}</span>
+                    </div>
+                  </div>
+                )}
+                {selectedOrder.client_phone && (
+                  <div>
+                    <Label className="text-sm font-medium">Phone</Label>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      <span>{selectedOrder.client_phone}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Address Information */}
+              {(selectedOrder.client_address || selectedOrder.client_postcode) && (
+                <div>
+                  <Label className="text-sm font-medium">Address</Label>
+                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4 mt-0.5" />
+                    <div>
+                      {selectedOrder.client_address && (
+                        <p>{selectedOrder.client_address}</p>
+                      )}
+                      {selectedOrder.client_postcode && (
+                        <p>{selectedOrder.client_postcode}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">Event Date</Label>
@@ -704,6 +745,7 @@ const Orders = () => {
                   <p className="text-sm text-muted-foreground">{formatPrice(selectedOrder.total_amount)}</p>
                 </div>
               </div>
+              
               <div>
                 <Label className="text-sm font-medium">Status</Label>
                 <Badge variant={getStatusVariant(selectedOrder.status)} className="mt-1 flex items-center gap-1 w-fit">
@@ -711,6 +753,29 @@ const Orders = () => {
                   {selectedOrder.status}
                 </Badge>
               </div>
+              
+              {/* Order Items */}
+              {selectedOrder.items && Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Order Items</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedOrder.items.map((item: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                        <div>
+                          <p className="text-sm font-medium">{item.name}</p>
+                          {item.size && <p className="text-xs text-muted-foreground">Size: {item.size}</p>}
+                          {item.color && <p className="text-xs text-muted-foreground">Color: {item.color}</p>}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm">Qty: {item.quantity}</p>
+                          <p className="text-sm font-medium">{formatPrice(item.price * item.quantity)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               {selectedOrder.notes && (
                 <div>
                   <Label className="text-sm font-medium">Notes</Label>
