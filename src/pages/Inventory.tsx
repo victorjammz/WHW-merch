@@ -8,24 +8,33 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InventoryTable } from "@/components/InventoryTable";
+import { ProductVariantTable } from "@/components/ProductVariantTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
+import { AddProductForm } from "@/components/AddProductForm";
 import { BarcodeScannerInventory } from "@/components/BarcodeScannerInventory";
 import { TestDataHelper } from "@/components/TestDataHelper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface InventoryItem {
+interface ProductVariant {
   id: string;
   sku: string;
-  name: string;
-  category: string;
-  size: string | null;
   color: string | null;
+  size: string | null;
   quantity: number;
   price: number;
   status: "low" | "medium" | "high";
   image_url?: string | null;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  image_url?: string | null;
+  variants: ProductVariant[];
 }
 
 interface FilterState {
@@ -45,7 +54,7 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     categories: [],
@@ -56,108 +65,187 @@ const Inventory = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchInventory = async () => {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('*');
+    const fetchProducts = async () => {
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select(`
+          id,
+          name,
+          category,
+          description,
+          image_url,
+          created_at,
+          updated_at
+        `)
+        .order('name');
       
-      if (error) {
+      if (productsError) {
         toast({
-          title: "Error fetching inventory",
-          description: error.message,
+          title: "Error fetching products",
+          description: productsError.message,
           variant: "destructive",
         });
         return;
       }
 
-      setInventory(data.map(item => ({
-        ...item,
-        status: getStockStatus(item.quantity)
-      })));
+      // Fetch variants for each product
+      const { data: variantsData, error: variantsError } = await supabase
+        .from('product_variants')
+        .select('*')
+        .order('sku');
 
-      // Extract unique categories
-      const uniqueCategories = [...new Set(data.map(item => item.category))];
+      if (variantsError) {
+        toast({
+          title: "Error fetching variants",
+          description: variantsError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Group variants by product
+      const productsWithVariants = productsData.map(product => ({
+        ...product,
+        variants: variantsData
+          .filter(variant => variant.product_id === product.id)
+          .map(variant => ({
+            ...variant,
+            status: getStockStatus(variant.quantity)
+          }))
+      }));
+
+      setProducts(productsWithVariants);
+
+      // Extract unique categories from products
+      const uniqueCategories = [...new Set(productsData.map(product => product.category))];
       setCategories(uniqueCategories);
     };
 
-    fetchInventory();
+    fetchProducts();
   }, [toast]);
 
   // Apply all filters
-  const filteredInventory = inventory.filter(item => {
-    // Search filter
+  const filteredProducts = products.filter(product => {
+    // Search filter - search across product name, category, and variant details
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = (
-        (item.name && item.name.toLowerCase().includes(searchLower)) ||
-        (item.sku && item.sku.toLowerCase().includes(searchLower)) ||
-        (item.category && item.category.toLowerCase().includes(searchLower)) ||
-        (item.size && item.size.toLowerCase().includes(searchLower)) ||
-        (item.color && item.color.toLowerCase().includes(searchLower)) ||
-        item.quantity.toString().includes(searchLower) ||
-        item.price.toString().includes(searchLower) ||
-        (item.status && item.status.toLowerCase().includes(searchLower))
+      const productMatches = (
+        product.name.toLowerCase().includes(searchLower) ||
+        product.category.toLowerCase().includes(searchLower)
       );
-      if (!matchesSearch) return false;
+      
+      const variantMatches = product.variants.some(variant => (
+        (variant.sku && variant.sku.toLowerCase().includes(searchLower)) ||
+        (variant.color && variant.color.toLowerCase().includes(searchLower)) ||
+        (variant.size && variant.size.toLowerCase().includes(searchLower)) ||
+        variant.quantity.toString().includes(searchLower) ||
+        variant.price.toString().includes(searchLower) ||
+        (variant.status && variant.status.toLowerCase().includes(searchLower))
+      ));
+
+      if (!productMatches && !variantMatches) return false;
     }
 
     // Category filter
-    if (filters.categories.length > 0 && !filters.categories.includes(item.category)) {
+    if (filters.categories.length > 0 && !filters.categories.includes(product.category)) {
       return false;
     }
 
-    // Status filter
-    if (filters.status.length > 0 && !filters.status.includes(item.status)) {
-      return false;
+    // Status filter - check if any variant matches the status
+    if (filters.status.length > 0) {
+      const hasMatchingStatus = product.variants.some(variant => 
+        filters.status.includes(variant.status)
+      );
+      if (!hasMatchingStatus) return false;
     }
 
-    // Price range filter
-    if (filters.priceRange.min && item.price < parseFloat(filters.priceRange.min)) {
-      return false;
-    }
-    if (filters.priceRange.max && item.price > parseFloat(filters.priceRange.max)) {
-      return false;
+    // Price range filter - check if any variant matches the price range
+    if (filters.priceRange.min || filters.priceRange.max) {
+      const hasMatchingPrice = product.variants.some(variant => {
+        if (filters.priceRange.min && variant.price < parseFloat(filters.priceRange.min)) {
+          return false;
+        }
+        if (filters.priceRange.max && variant.price > parseFloat(filters.priceRange.max)) {
+          return false;
+        }
+        return true;
+      });
+      if (!hasMatchingPrice) return false;
     }
 
-    // Stock level filter
+    // Stock level filter - check if any variant matches the stock level
     if (filters.stockLevel) {
-      switch (filters.stockLevel) {
-        case "in-stock":
-          if (item.quantity <= 0) return false;
-          break;
-        case "low-stock":
-          if (item.quantity >= 20 || item.quantity <= 0) return false;
-          break;
-        case "out-of-stock":
-          if (item.quantity > 0) return false;
-          break;
-      }
+      const hasMatchingStock = product.variants.some(variant => {
+        switch (filters.stockLevel) {
+          case "in-stock":
+            return variant.quantity > 0;
+          case "low-stock":
+            return variant.quantity > 0 && variant.quantity < 20;
+          case "out-of-stock":
+            return variant.quantity === 0;
+          default:
+            return true;
+        }
+      });
+      if (!hasMatchingStock) return false;
     }
 
     return true;
   });
 
   const handleRefresh = async () => {
-    const { data, error } = await supabase
-      .from('inventory')
-      .select('*');
+    const { data: productsData, error: productsError } = await supabase
+      .from('products')
+      .select(`
+        id,
+        name,
+        category,
+        description,
+        image_url,
+        created_at,
+        updated_at
+      `)
+      .order('name');
     
-    if (error) {
+    if (productsError) {
       toast({
-        title: "Error fetching inventory",
-        description: error.message,
+        title: "Error fetching products",
+        description: productsError.message,
         variant: "destructive",
       });
       return;
     }
 
-    setInventory(data.map(item => ({
-      ...item,
-      status: getStockStatus(item.quantity)
-    })));
+    // Fetch variants for each product
+    const { data: variantsData, error: variantsError } = await supabase
+      .from('product_variants')
+      .select('*')
+      .order('sku');
+
+    if (variantsError) {
+      toast({
+        title: "Error fetching variants",
+        description: variantsError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Group variants by product
+    const productsWithVariants = productsData.map(product => ({
+      ...product,
+      variants: variantsData
+        .filter(variant => variant.product_id === product.id)
+        .map(variant => ({
+          ...variant,
+          status: getStockStatus(variant.quantity)
+        }))
+    }));
+
+    setProducts(productsWithVariants);
 
     // Extract unique categories
-    const uniqueCategories = [...new Set(data.map(item => item.category))];
+    const uniqueCategories = [...new Set(productsData.map(product => product.category))];
     setCategories(uniqueCategories);
   };
 
@@ -179,19 +267,32 @@ const Inventory = () => {
   };
 
   const exportToCSV = () => {
-    // Create CSV content
-    const headers = ['SKU', 'Name', 'Category', 'Size', 'Color', 'Quantity', 'Price', 'Status'];
+    // Create CSV content from all variants
+    const allVariants = filteredProducts.flatMap(product => 
+      product.variants.map(variant => ({
+        productName: product.name,
+        category: product.category,
+        sku: variant.sku,
+        color: variant.color,
+        size: variant.size,
+        quantity: variant.quantity,
+        price: variant.price,
+        status: variant.status
+      }))
+    );
+
+    const headers = ['Product Name', 'Category', 'SKU', 'Color', 'Size', 'Quantity', 'Price', 'Status'];
     const csvContent = [
       headers.join(','),
-      ...filteredInventory.map(item => [
-        item.sku,
-        `"${item.name}"`, // Wrap in quotes in case of commas
-        item.category,
-        item.size || '',
-        item.color || '',
-        item.quantity,
-        item.price,
-        item.status
+      ...allVariants.map(variant => [
+        `"${variant.productName}"`,
+        variant.category,
+        variant.sku,
+        variant.color || '',
+        variant.size || '',
+        variant.quantity,
+        variant.price,
+        variant.status
       ].join(','))
     ].join('\n');
 
@@ -213,15 +314,16 @@ const Inventory = () => {
 
     toast({
       title: "Export Successful",
-      description: `Exported ${filteredInventory.length} items to CSV file`,
+      description: `Exported ${allVariants.length} variants to CSV file`,
     });
   };
 
   // Calculate stats based on filtered data
-  const totalItems = filteredInventory.reduce((sum, item) => sum + item.quantity, 0);
-  const totalProducts = filteredInventory.length;
-  const lowStockItems = filteredInventory.filter(item => item.quantity < 20 && item.quantity > 0).length;
-  const outOfStockItems = filteredInventory.filter(item => item.quantity === 0).length;
+  const allVariants = filteredProducts.flatMap(product => product.variants);
+  const totalItems = allVariants.reduce((sum, variant) => sum + variant.quantity, 0);
+  const totalProducts = filteredProducts.length;
+  const lowStockItems = allVariants.filter(variant => variant.quantity < 20 && variant.quantity > 0).length;
+  const outOfStockItems = allVariants.filter(variant => variant.quantity === 0).length;
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -251,11 +353,10 @@ const Inventory = () => {
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
-              <AddInventoryForm 
+              <AddProductForm
                 onAdd={() => {
                   setIsAddDialogOpen(false);
-                  // Refresh inventory data
-                  window.location.reload();
+                  handleRefresh();
                 }} 
                 onCancel={() => setIsAddDialogOpen(false)} 
               />
@@ -479,7 +580,7 @@ const Inventory = () => {
             </div>
           </div>
           
-          <InventoryTable data={filteredInventory} onRefresh={handleRefresh} />
+          <ProductVariantTable data={filteredProducts} onRefresh={handleRefresh} />
         </CardContent>
       </Card>
       
