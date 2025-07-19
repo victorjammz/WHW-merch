@@ -241,6 +241,10 @@ const Orders = () => {
           aValue = a.status || "";
           bValue = b.status || "";
           break;
+        case "deleted_at":
+          aValue = a.deleted_at ? new Date(a.deleted_at).getTime() : 0;
+          bValue = b.deleted_at ? new Date(b.deleted_at).getTime() : 0;
+          break;
         case "created_at":
         default:
           aValue = new Date(a.created_at).getTime();
@@ -523,21 +527,87 @@ const Orders = () => {
                 Orders deleted within the last 30 days. They can be restored or will be permanently deleted after 30 days.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search deleted orders..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Dates</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">Next 7 Days</SelectItem>
+                    <SelectItem value="month">Next 30 Days</SelectItem>
+                    <SelectItem value="past">Past Events</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Event Name</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Event Date</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Deleted At</TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("created_at")}>
+                      <div className="flex items-center gap-2">
+                        Order ID
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_name")}>
+                      <div className="flex items-center gap-2">
+                        Event Name
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("client_name")}>
+                      <div className="flex items-center gap-2">
+                        Client
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("event_date")}>
+                      <div className="flex items-center gap-2">
+                        Event Date
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("total_amount")}>
+                      <div className="flex items-center gap-2">
+                        Total
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("deleted_at")}>
+                      <div className="flex items-center gap-2">
+                        Deleted At
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deletedOrders.map((order) => (
+                  {filteredAndSortedOrders.map((order) => (
                     <TableRow key={order.id} className="opacity-60">
                       <TableCell className="font-medium">{order.id}</TableCell>
                       <TableCell>{order.event_name}</TableCell>
@@ -558,7 +628,7 @@ const Orders = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {deletedOrders.length === 0 && (
+                  {filteredAndSortedOrders.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No deleted orders found
