@@ -33,11 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastActivity, setLastActivity] = useState(Date.now());
   const { toast } = useToast();
-
-  // Idle timeout duration: 30 minutes in milliseconds
-  const IDLE_TIMEOUT = 30 * 60 * 1000;
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -69,45 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Activity tracking and idle timeout
-  useEffect(() => {
-    if (!user) return;
-
-    const updateActivity = () => {
-      setLastActivity(Date.now());
-    };
-
-    // Events that indicate user activity
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    // Add event listeners
-    events.forEach(event => {
-      document.addEventListener(event, updateActivity, true);
-    });
-
-    // Check for idle timeout every minute
-    const idleCheckInterval = setInterval(() => {
-      const now = Date.now();
-      const timeSinceLastActivity = now - lastActivity;
-      
-      if (timeSinceLastActivity >= IDLE_TIMEOUT) {
-        toast({
-          title: "Session expired",
-          description: "You've been signed out due to inactivity",
-          variant: "destructive"
-        });
-        signOut();
-      }
-    }, 60000); // Check every minute
-
-    // Cleanup
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, updateActivity, true);
-      });
-      clearInterval(idleCheckInterval);
-    };
-  }, [user, lastActivity, IDLE_TIMEOUT]);
 
   const fetchUserProfile = async (userId: string) => {
     try {
