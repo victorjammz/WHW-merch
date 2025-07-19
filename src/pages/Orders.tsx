@@ -21,6 +21,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 import { CreateOrderForm } from "@/components/CreateOrderForm";
+import { EditOrderForm } from "@/components/EditOrderForm";
 
 const Orders = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -710,6 +711,35 @@ const Orders = () => {
                 </div>
               )}
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Order Dialog */}
+      <Dialog open={isEditOrderOpen} onOpenChange={setIsEditOrderOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Order - {selectedOrder?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Update order information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <EditOrderForm 
+              order={selectedOrder}
+              onSuccess={() => {
+                setIsEditOrderOpen(false);
+                fetchOrders();
+                toast({
+                  title: "Success",
+                  description: "Order updated successfully"
+                });
+              }}
+              onCancel={() => setIsEditOrderOpen(false)}
+            />
           )}
         </DialogContent>
       </Dialog>
