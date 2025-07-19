@@ -225,7 +225,7 @@ export function AddProductForm({ onAdd, onCancel }: AddProductFormProps) {
     setOpenCategoryDialog(false);
   };
 
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL", "Age 2-3", "Age 4-5", "Age 5-6", "Age 7-8", "Age 9-10", "Age 10-11"];
   const colors = ["Black", "White", "Grey", "Navy", "Brown", "Beige", "Red", "Blue", "Green"];
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
