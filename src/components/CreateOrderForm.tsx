@@ -4,30 +4,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Plus } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
-import { Check, ChevronsUpDown, Plus, Minus, AlertTriangle } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
 
 interface CreateOrderFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
   onCancel: () => void;
 }
 
 interface OrderItem {
   id: string;
   variant_id: string;
-  product_name: string;
-  variant_display: string; // e.g., "Red - Large"
-  sku: string;
   quantity: number;
   price: number;
-  available_stock: number;
 }
 
 interface Event {
@@ -44,18 +40,21 @@ interface Category {
 
 interface ProductVariant {
   id: string;
-  sku: string;
   product_id: string;
-  product_name: string;
-  color: string | null;
-  size: string | null;
-  quantity: number;
+  sku: string;
+  size: string;
+  color: string;
   price: number;
+  quantity: number;
+  product: {
+    name: string;
+    category: string;
+  };
 }
 
 export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  // Step 1 - Order Details
+  const [selectedEvent, setSelectedEvent] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -65,62 +64,52 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [country, setCountry] = useState("");
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([
+    { id: "1", variant_id: "", quantity: 1, price: 0 }
+  ]);
+
+  // Step 2 - Payment Details
+  const [paymentStatus, setPaymentStatus] = useState("not paid");
+  const [paymentReference, setPaymentReference] = useState("");
+
+  // Form step management
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // Validation states
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
-  const [items, setItems] = useState<OrderItem[]>([
-    { 
-      id: "1", 
-      variant_id: "", 
-      product_name: "", 
-      variant_display: "",
-      sku: "",
-      quantity: 1, 
-      price: 0, 
-      available_stock: 0 
-    }
-  ]);
+
+  // Data states
   const [events, setEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
-  const [eventSearchOpen, setEventSearchOpen] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { toast } = useToast();
 
-  // Email validation function
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  // Phone validation function - supports various formats
-  const validatePhone = (phone: string): boolean => {
-    // Remove all non-digit characters for validation
-    const cleaned = phone.replace(/\D/g, '');
-    // Check if it's between 10-15 digits (international format)
-    return cleaned.length >= 10 && cleaned.length <= 15;
-  };
-
-  // Handle email change with validation
+  // Email validation
   const handleEmailChange = (value: string) => {
     setEmail(value);
-    if (value && !validateEmail(value)) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (value && !emailRegex.test(value)) {
       setEmailError("Please enter a valid email address");
     } else {
       setEmailError("");
     }
   };
 
-  // Handle phone change with validation
+  // Phone validation
   const handlePhoneChange = (value: string) => {
     setPhone(value);
-    if (value && !validatePhone(value)) {
-      setPhoneError("Please enter a valid phone number (10-15 digits)");
+    const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
+    if (value && !phoneRegex.test(value)) {
+      setPhoneError("Please enter a valid phone number");
     } else {
       setPhoneError("");
     }
   };
 
-  // Fetch events, categories, and product variants on component mount
   useEffect(() => {
     fetchEvents();
     fetchCategories();
@@ -131,16 +120,15 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('id, name, event_date, location')
+        .select('*')
         .order('event_date', { ascending: true });
 
       if (error) throw error;
       setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching events:', error);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to load events",
+        description: "Failed to fetch events: " + error.message,
         variant: "destructive"
       });
     }
@@ -150,16 +138,15 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('id, name')
-        .order('name', { ascending: true });
+        .select('*')
+        .order('name');
 
       if (error) throw error;
       setCategories(data || []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to load categories",
+        description: "Failed to fetch categories: " + error.message,
         variant: "destructive"
       });
     }
@@ -167,81 +154,49 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
 
   const fetchProductVariants = async () => {
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('product_variants')
         .select(`
-          id,
-          sku,
-          product_id,
-          color,
-          size,
-          quantity,
-          price,
-          products!inner(name)
+          *,
+          product:products(name, category)
         `)
-        .gt('quantity', 0) // Only show in-stock variants
-        .order('products(name)', { ascending: true });
+        .order('sku');
 
       if (error) throw error;
-      
-      // Transform the data to include product name
-      const transformedData = (data || []).map(variant => ({
-        id: variant.id,
-        sku: variant.sku,
-        product_id: variant.product_id,
-        product_name: variant.products.name,
-        color: variant.color,
-        size: variant.size,
-        quantity: variant.quantity,
-        price: variant.price
-      }));
-      
-      setProductVariants(transformedData);
-    } catch (error) {
-      console.error('Error fetching product variants:', error);
+      setProductVariants(data || []);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to load product variants",
+        description: "Failed to fetch product variants: " + error.message,
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const addItem = () => {
-    const newItem: OrderItem = {
-      id: Date.now().toString(),
-      variant_id: "",
-      product_name: "",
-      variant_display: "",
-      sku: "",
-      quantity: 1,
-      price: 0,
-      available_stock: 0
-    };
-    setItems([...items, newItem]);
+    const newId = (orderItems.length + 1).toString();
+    setOrderItems([...orderItems, { id: newId, variant_id: "", quantity: 1, price: 0 }]);
   };
 
   const removeItem = (id: string) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+    if (orderItems.length > 1) {
+      setOrderItems(orderItems.filter(item => item.id !== id));
     }
   };
 
   const updateItem = (id: string, field: keyof OrderItem, value: string | number) => {
-    setItems(items.map(item => {
+    setOrderItems(orderItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         
-        // If variant_id changes, update all related fields
-        if (field === 'variant_id') {
-          const selectedVariant = productVariants.find(variant => variant.id === value);
-          if (selectedVariant) {
-            updatedItem.product_name = selectedVariant.product_name;
-            updatedItem.variant_display = `${selectedVariant.color || 'No Color'} - ${selectedVariant.size || 'No Size'}`;
-            updatedItem.sku = selectedVariant.sku;
-            updatedItem.price = selectedVariant.price;
-            updatedItem.available_stock = selectedVariant.quantity;
-            updatedItem.quantity = Math.min(updatedItem.quantity, selectedVariant.quantity);
+        // If variant_id changes, update the price
+        if (field === 'variant_id' && value) {
+          const variant = productVariants.find(v => v.id === value);
+          if (variant) {
+            updatedItem.price = variant.price;
           }
         }
         
@@ -252,33 +207,20 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   };
 
   const calculateTotal = () => {
-    return items.reduce((total, item) => total + (item.quantity * item.price), 0);
-  };
-
-  const getVariantDisplayText = (variant: ProductVariant) => {
-    const colorSize = [variant.color, variant.size].filter(Boolean).join(' - ');
-    return `${variant.product_name} (${colorSize || 'Standard'}) - £${variant.price.toFixed(2)} - Stock: ${variant.quantity}`;
+    return orderItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
   };
 
   const getFilteredVariants = (searchTerm: string = '') => {
     return productVariants.filter(variant => {
-      if (!searchTerm) return true;
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        variant.product_name.toLowerCase().includes(searchLower) ||
-        variant.sku.toLowerCase().includes(searchLower) ||
-        (variant.color && variant.color.toLowerCase().includes(searchLower)) ||
-        (variant.size && variant.size.toLowerCase().includes(searchLower))
-      );
+      const searchString = `${variant.product?.name || ''} ${variant.sku} ${variant.size || ''} ${variant.color || ''}`.toLowerCase();
+      return searchString.includes(searchTerm.toLowerCase());
     });
   };
 
-  const isLowStock = (stock: number) => stock < 15;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate required fields
+  const handleNextStep = () => {
+    // Validate required fields for step 1
     if (!selectedEvent || !fullName || !email || !phone || !address || !city || !postcode || !country) {
       toast({
         title: "Validation Error",
@@ -288,67 +230,61 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       return;
     }
 
-    // Validate that at least one item with a selected variant exists
-    const validItems = items.filter(item => 
-      item.variant_id && item.quantity > 0
-    );
-    
-    if (validItems.length === 0) {
+    if (emailError || phoneError) {
       toast({
         title: "Validation Error",
-        description: "Please select at least one product item for the order",
+        description: "Please fix validation errors before proceeding",
         variant: "destructive"
       });
       return;
     }
 
-    // Validate email format
-    if (!validateEmail(email)) {
-      setEmailError("Please enter a valid email address");
-      toast({
-        title: "Validation Error",
-        description: "Please enter a valid email address",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate phone format
-    if (!validatePhone(phone)) {
-      setPhoneError("Please enter a valid phone number (10-15 digits)");
+    if (orderItems.length === 0 || orderItems.some(item => !item.variant_id || item.quantity <= 0)) {
       toast({
         title: "Validation Error", 
-        description: "Please enter a valid phone number",
+        description: "Please add at least one valid item to the order",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCurrentStep(2);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (orderItems.length === 0 || orderItems.some(item => !item.variant_id || item.quantity <= 0)) {
+      toast({
+        title: "Validation Error", 
+        description: "Please add at least one valid item to the order",
         variant: "destructive"
       });
       return;
     }
 
     setIsSubmitting(true);
-    
-    try {
-      // Filter valid items for insertion
-      const validItems = items.filter(item => 
-        item.variant_id && item.quantity > 0
-      );
-      
-      const orderData = {
-        event_name: selectedEvent.name,
-        client_name: fullName,
-        client_email: email,
-        client_phone: phone,
-        client_postcode: postcode,
-        client_address: address,
-        event_date: selectedEvent.event_date,
-        status,
-        notes: notes || null,
-        items: JSON.stringify(validItems), // Convert to JSON string
-        total_amount: calculateTotal()
-      };
 
-      const { error } = await supabase
+    try {
+      const { data, error } = await supabase
         .from('event_orders')
-        .insert(orderData);
+        .insert({
+          event_name: events.find(e => e.id === selectedEvent)?.name || "",
+          event_date: events.find(e => e.id === selectedEvent)?.event_date || "",
+          client_name: fullName,
+          client_email: email,
+          client_phone: phone,
+          client_address: address,
+          client_postcode: postcode,
+          status,
+          notes,
+          items: orderItems as any,
+          total_amount: calculateTotal(),
+          payment_status: paymentStatus,
+          payment_reference: paymentReference
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
@@ -357,9 +293,23 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         description: "Order created successfully"
       });
 
-      onSuccess();
+      // Reset form
+      setSelectedEvent("");
+      setFullName("");
+      setEmail("");
+      setPhone("");
+      setPostcode("");
+      setAddress("");
+      setCity("");
+      setCountry("");
+      setStatus("pending");
+      setNotes("");
+      setOrderItems([{ id: "1", variant_id: "", quantity: 1, price: 0 }]);
+      setPaymentStatus("not paid");
+      setPaymentReference("");
+      setCurrentStep(1);
+      onSuccess?.();
     } catch (error: any) {
-      console.error('Error creating order:', error);
       toast({
         title: "Error",
         description: "Failed to create order: " + error.message,
@@ -371,341 +321,339 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Select Event *</Label>
-          <Popover open={eventSearchOpen} onOpenChange={setEventSearchOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={eventSearchOpen}
-                className="w-full justify-between"
-              >
-                {selectedEvent ? selectedEvent.name : "Select event..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Search events..." />
-                <CommandList>
-                  <CommandEmpty>No events found.</CommandEmpty>
-                  <CommandGroup>
-                    {events.map((event) => (
-                      <CommandItem
-                        key={event.id}
-                        value={`${event.name} ${event.location}`}
-                        onSelect={() => {
-                          setSelectedEvent(event);
-                          setEventSearchOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedEvent?.id === event.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">{event.name}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(event.event_date), "PPP")} • {event.location}
-                          </span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Create New Order - Step {currentStep} of 2
+          </CardTitle>
+        </CardHeader>
         
-        <div className="space-y-2">
-          <Label htmlFor="full-name">Full Name *</Label>
-          <Input
-            id="full-name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="e.g., John Smith"
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email *</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => handleEmailChange(e.target.value)}
-            placeholder="e.g., john@example.com"
-            className={emailError ? "border-destructive" : ""}
-            required
-          />
-          {emailError && (
-            <p className="text-sm text-destructive">{emailError}</p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone Number *</Label>
-          <Input
-            id="phone"
-            type="tel"
-            value={phone}
-            onChange={(e) => handlePhoneChange(e.target.value)}
-            placeholder="e.g., +44 1234 567890"
-            className={phoneError ? "border-destructive" : ""}
-            required
-          />
-          {phoneError && (
-            <p className="text-sm text-destructive">{phoneError}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <Label className="text-base font-medium">Address Information *</Label>
-        <PostcodeAutocomplete
-          onAddressComplete={(addressData) => {
-            setAddress(addressData.address);
-            setCity(addressData.city);
-            setPostcode(addressData.postcode);
-            setCountry(addressData.country);
-          }}
-          className="space-y-4"
-        />
-        
-        {/* Show individual fields if they have values */}
-        {(address || city || postcode || country) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-            <div className="space-y-2">
-              <Label htmlFor="address-display">Address *</Label>
-              <Input
-                id="address-display"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Address will be filled automatically"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="city-display">City *</Label>
-              <Input
-                id="city-display"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City will be filled automatically"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="postcode-display">Postcode *</Label>
-              <Input
-                id="postcode-display"
-                value={postcode}
-                onChange={(e) => setPostcode(e.target.value)}
-                placeholder="Postcode will be filled automatically"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="country-display">Country *</Label>
-              <Input
-                id="country-display"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Country will be filled automatically"
-                required
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="shipped">Shipped</SelectItem>
-            <SelectItem value="delivered">Delivered</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-medium">Order Items</Label>
-          <Button type="button" onClick={addItem} size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-1" />
-            Add Item
-          </Button>
-        </div>
-        
-        {items.map((item, index) => (
-          <div key={item.id} className="border rounded-lg p-4 space-y-4">
-            {/* Product Variant Selection - Single Dropdown */}
-            <div className="space-y-2">
-              <Label className="text-sm">Select Product Variant *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between text-left font-normal"
-                  >
-                    {item.variant_id ? 
-                      `${item.product_name} (${item.variant_display}) - ${item.sku}` : 
-                      "Select a product variant..."
-                    }
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search products..." />
-                    <CommandList>
-                      <CommandEmpty>No variants found.</CommandEmpty>
-                      <CommandGroup>
-                        {getFilteredVariants().map((variant) => (
-                          <CommandItem
-                            key={variant.id}
-                            value={getVariantDisplayText(variant)}
-                            onSelect={() => updateItem(item.id, "variant_id", variant.id)}
-                            className="flex flex-col items-start space-y-1 p-3"
-                          >
-                            <div className="flex items-center space-x-2 w-full">
-                              <Check
-                                className={cn(
-                                  "h-4 w-4",
-                                  item.variant_id === variant.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium">{variant.product_name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {variant.color && variant.size ? 
-                                    `${variant.color} - ${variant.size}` : 
-                                    (variant.color || variant.size || 'Standard')
-                                  } • £{variant.price.toFixed(2)} • SKU: {variant.sku}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {variant.quantity} in stock
-                                  {variant.quantity < 15 && (
-                                    <span className="text-orange-600 ml-2">⚠ Low stock</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Quantity and Price Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent>
+          {currentStep === 1 ? (
+            <div className="space-y-6">
+              {/* Event Selection */}
               <div className="space-y-2">
-                <Label className="text-sm">Quantity *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={item.available_stock}
-                  value={item.quantity}
-                  onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
-                  disabled={!item.variant_id}
+                <Label htmlFor="event">Event *</Label>
+                <Select value={selectedEvent} onValueChange={setSelectedEvent}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.name} - {new Date(event.event_date).toLocaleDateString()} ({event.location})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Customer Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter customer full name"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    placeholder="customer@example.com"
+                    className={emailError ? "border-red-500" : ""}
+                    required
+                  />
+                  {emailError && (
+                    <p className="text-sm text-red-500">{emailError}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone *</Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="+44 123 456 7890"
+                    className={phoneError ? "border-red-500" : ""}
+                    required
+                  />
+                  {phoneError && (
+                    <p className="text-sm text-red-500">{phoneError}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="status">Order Status</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Address Information</h3>
+                <PostcodeAutocomplete
+                  onAddressComplete={(addressData) => {
+                    setAddress(addressData.address);
+                    setCity(addressData.city);
+                    setPostcode(addressData.postcode);
+                    setCountry(addressData.country);
+                  }}
                 />
-                {item.available_stock > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    Max: {item.available_stock} available
+                
+                {/* Show individual fields if they have values */}
+                {(address || city || postcode || country) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="address-display">Address *</Label>
+                      <Input
+                        id="address-display"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Address will be filled automatically"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="city-display">City *</Label>
+                      <Input
+                        id="city-display"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="City will be filled automatically"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="postcode-display">Postcode *</Label>
+                      <Input
+                        id="postcode-display"
+                        value={postcode}
+                        onChange={(e) => setPostcode(e.target.value)}
+                        placeholder="Postcode will be filled automatically"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="country-display">Country *</Label>
+                      <Input
+                        id="country-display"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        placeholder="Country will be filled automatically"
+                        required
+                      />
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm">Price (each)</Label>
-                <div className="text-sm font-medium py-2 px-3 bg-muted/50 rounded">
-                  £{item.price.toFixed(2)}
+              {/* Order Items */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Order Items</h3>
+                  <Button type="button" onClick={addItem} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </div>
+                
+                {orderItems.map((item, index) => (
+                  <Card key={item.id} className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <div className="space-y-2">
+                        <Label>Product Variant *</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "justify-between",
+                                !item.variant_id && "text-muted-foreground"
+                              )}
+                            >
+                              {item.variant_id
+                                ? (() => {
+                                    const variant = productVariants.find(v => v.id === item.variant_id);
+                                    return variant 
+                                      ? `${variant.product?.name} - ${variant.sku} (${variant.size || 'N/A'}, ${variant.color || 'N/A'})`
+                                      : "Select variant...";
+                                  })()
+                                : "Select variant..."}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-0">
+                            <Command>
+                              <CommandInput placeholder="Search variants..." />
+                              <CommandEmpty>No variant found.</CommandEmpty>
+                              <CommandList>
+                                <CommandGroup>
+                                  {getFilteredVariants().map((variant) => (
+                                    <CommandItem
+                                      key={variant.id}
+                                      value={`${variant.product?.name} ${variant.sku} ${variant.size} ${variant.color}`}
+                                      onSelect={() => {
+                                        updateItem(item.id, 'variant_id', variant.id);
+                                      }}
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{variant.product?.name}</span>
+                                        <span className="text-sm text-muted-foreground">
+                                          {variant.sku} - {variant.size || 'N/A'}, {variant.color || 'N/A'}
+                                        </span>
+                                        <span className="text-sm font-medium">£{variant.price}</span>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Quantity *</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Price</Label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg font-medium">£{item.price.toFixed(2)}</span>
+                          <Badge variant="secondary">
+                            Total: £{(item.price * item.quantity).toFixed(2)}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => removeItem(item.id)}
+                          disabled={orderItems.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                
+                <div className="flex justify-end">
+                  <div className="text-lg font-semibold">
+                    Total: £{calculateTotal().toFixed(2)}
+                  </div>
                 </div>
               </div>
 
+              {/* Notes */}
               <div className="space-y-2">
-                <Label className="text-sm">Subtotal</Label>
-                <div className="text-sm font-semibold py-2 px-3 bg-primary/10 rounded">
-                  £{(item.quantity * item.price).toFixed(2)}
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any additional notes for this order..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Payment Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Payment Information</h3>
+                
+                <div className="space-y-2">
+                  <Label>Payment Status *</Label>
+                  <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="not paid">Not Paid</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment-reference">Payment Reference</Label>
+                  <Input
+                    id="payment-reference"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="Enter payment reference (optional)"
+                  />
                 </div>
               </div>
             </div>
+          )}
+        </CardContent>
 
-            {/* Stock Level Warning */}
-            {item.available_stock > 0 && isLowStock(item.available_stock) && (
-              <Alert className="border-orange-200 bg-orange-50">
-                <AlertTriangle className="h-4 w-4 text-orange-600" />
-                <AlertDescription className="text-orange-800">
-                  Low stock warning: Only {item.available_stock} units available
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Remove Item Button */}
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeItem(item.id)}
-                disabled={items.length === 1}
-                className="text-destructive hover:text-destructive"
-              >
-                <Minus className="h-4 w-4 mr-1" />
-                Remove Item
+        <div className="flex justify-between p-6 border-t">
+          {currentStep === 1 ? (
+            <>
+              <div></div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleNextStep}>
+                  Next
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="outline" onClick={() => setCurrentStep(1)}>
+                Back
               </Button>
-            </div>
-          </div>
-        ))}
-        
-        <div className="flex justify-end">
-          <div className="text-lg font-semibold">
-            Total: £{calculateTotal().toFixed(2)}
-          </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+                  {isSubmitting ? "Creating..." : "Create Order"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes (Optional)</Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Any special requirements or additional information..."
-          rows={3}
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Creating..." : "Create Order"}
-        </Button>
-      </div>
-    </form>
+      </Card>
+    </div>
   );
 }

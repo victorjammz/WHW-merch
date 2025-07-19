@@ -283,9 +283,13 @@ const Orders = () => {
           bValue = parseFloat(b.total_amount) || 0;
           break;
         case "status":
-          aValue = a.status || "";
-          bValue = b.status || "";
-          break;
+           aValue = a.status || "";
+           bValue = b.status || "";
+           break;
+         case "payment_status":
+           aValue = a.payment_status || "";
+           bValue = b.payment_status || "";
+           break;
         case "deleted_at":
           aValue = a.deleted_at ? new Date(a.deleted_at).getTime() : 0;
           bValue = b.deleted_at ? new Date(b.deleted_at).getTime() : 0;
@@ -487,13 +491,19 @@ const Orders = () => {
                         {renderSortIcon("total_amount")}
                       </div>
                     </TableHead>
-                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("status")}>
-                      <div className="flex items-center gap-2">
-                        Status
-                        {renderSortIcon("status")}
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("status")}>
+                       <div className="flex items-center gap-2">
+                         Status
+                         {renderSortIcon("status")}
+                       </div>
+                     </TableHead>
+                     <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("payment_status")}>
+                       <div className="flex items-center gap-2">
+                         Payment
+                         {renderSortIcon("payment_status")}
+                       </div>
+                     </TableHead>
+                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -555,8 +565,13 @@ const Orders = () => {
                              </SelectItem>
                            </SelectContent>
                          </Select>
-                       </TableCell>
-                      <TableCell className="text-right">
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>
+                            {order.payment_status || 'not paid'}
+                          </Badge>
+                        </TableCell>
+                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <Button
                             variant="ghost"
@@ -605,12 +620,12 @@ const Orders = () => {
                     </TableRow>
                   ))}
                   {filteredAndSortedOrders.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                        No orders found
-                      </TableCell>
-                    </TableRow>
-                  )}
+                     <TableRow>
+                       <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                         No orders found
+                       </TableCell>
+                     </TableRow>
+                   )}
                 </TableBody>
               </Table>
             </CardContent>
