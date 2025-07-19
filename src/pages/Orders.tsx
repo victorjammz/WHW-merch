@@ -421,7 +421,7 @@ const Orders = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("created_at")}>
+                    <TableHead className="cursor-pointer hover:bg-muted/50 w-32" onClick={() => handleSort("created_at")}>
                       <div className="flex items-center gap-2">
                         Order ID
                         {renderSortIcon("created_at")}
@@ -464,7 +464,7 @@ const Orders = () => {
                 <TableBody>
                   {filteredAndSortedOrders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell className="font-medium">{order.id.substring(0, 8)}...</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -595,7 +595,7 @@ const Orders = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("created_at")}>
+                    <TableHead className="cursor-pointer hover:bg-muted/50 w-32" onClick={() => handleSort("created_at")}>
                       <div className="flex items-center gap-2">
                         Order ID
                         {renderSortIcon("created_at")}
@@ -637,7 +637,7 @@ const Orders = () => {
                 <TableBody>
                   {filteredAndSortedOrders.map((order) => (
                     <TableRow key={order.id} className="opacity-60">
-                      <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell className="font-medium">{order.id.substring(0, 8)}...</TableCell>
                       <TableCell>{order.event_name}</TableCell>
                       <TableCell>{order.client_name}</TableCell>
                       <TableCell>{new Date(order.event_date).toLocaleDateString()}</TableCell>
