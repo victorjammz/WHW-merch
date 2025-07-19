@@ -111,6 +111,8 @@ export type Database = {
         Row: {
           client_name: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           event_date: string
           event_name: string
           id: string
@@ -123,6 +125,8 @@ export type Database = {
         Insert: {
           client_name: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           event_date: string
           event_name: string
           id?: string
@@ -135,6 +139,8 @@ export type Database = {
         Update: {
           client_name?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           event_date?: string
           event_name?: string
           id?: string
@@ -386,6 +392,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_deleted_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -393,6 +403,14 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      restore_order: {
+        Args: { order_id: string }
+        Returns: boolean
+      }
+      soft_delete_order: {
+        Args: { order_id: string }
+        Returns: boolean
       }
     }
     Enums: {
