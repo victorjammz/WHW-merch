@@ -530,47 +530,47 @@ const Orders = () => {
                       <TableCell>{new Date(order.event_date).toLocaleDateString()}</TableCell>
                       <TableCell>{Array.isArray(order.items) ? order.items.length : 0} items</TableCell>
                       <TableCell>{formatPrice(order.total_amount)}</TableCell>
-                       <TableCell>
-                         <Select 
-                           value={order.status} 
-                           onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
-                         >
-                           <SelectTrigger className="w-32">
-                             <SelectValue>
-                               <div className="flex items-center gap-1">
-                                 {getStatusIcon(order.status)}
-                                 <span className="capitalize">{order.status.replace('_', ' ')}</span>
-                               </div>
-                             </SelectValue>
-                           </SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="pending">
-                               <div className="flex items-center gap-2">
-                                 <Clock className="h-3 w-3" />
-                                 Pending
-                               </div>
-                             </SelectItem>
-                             <SelectItem value="in_progress">
-                               <div className="flex items-center gap-2">
-                                 <ArrowRight className="h-3 w-3" />
-                                 In Progress
-                               </div>
-                             </SelectItem>
-                             <SelectItem value="shipped">
-                               <div className="flex items-center gap-2">
-                                 <ArrowRight className="h-3 w-3" />
-                                 Shipped
-                               </div>
-                             </SelectItem>
-                             <SelectItem value="delivered">
-                               <div className="flex items-center gap-2">
-                                 <Check className="h-3 w-3" />
-                                 Delivered
-                               </div>
-                             </SelectItem>
-                           </SelectContent>
-                         </Select>
-                        </TableCell>
+                        <TableCell>
+                          <Select 
+                            value={order.status} 
+                            onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
+                          >
+                            <SelectTrigger className="w-32 p-0 border-none bg-transparent hover:bg-transparent">
+                              <SelectValue>
+                                <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">
+                                  {getStatusIcon(order.status)}
+                                  <span className="capitalize">{order.status.replace('_', ' ')}</span>
+                                </Badge>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3" />
+                                  Pending
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="in_progress">
+                                <div className="flex items-center gap-2">
+                                  <ArrowRight className="h-3 w-3" />
+                                  In Progress
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="shipped">
+                                <div className="flex items-center gap-2">
+                                  <ArrowRight className="h-3 w-3" />
+                                  Shipped
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="delivered">
+                                <div className="flex items-center gap-2">
+                                  <Check className="h-3 w-3" />
+                                  Delivered
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                         </TableCell>
                         <TableCell>
                           <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>
                             {order.payment_status || 'not paid'}
