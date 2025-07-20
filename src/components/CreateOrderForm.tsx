@@ -21,6 +21,11 @@ interface OrderItem {
   variant_id: string;
   quantity: number;
   price: number;
+  // Add actual product variant details for display
+  name?: string;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 interface Event {

@@ -16,6 +16,11 @@ interface OrderItem {
   variant_id: string;
   quantity: number;
   price: number;
+  // Add actual product variant details for display
+  name?: string;
+  size?: string;
+  color?: string;
+  sku?: string;
 }
 
 interface Product {
@@ -135,13 +140,21 @@ export function EnhancedItemSelector({ items, onItemsChange }: EnhancedItemSelec
         if (field === 'product_id') {
           updatedItem.variant_id = "";
           updatedItem.price = 0;
+          updatedItem.name = "";
+          updatedItem.size = "";
+          updatedItem.color = "";
+          updatedItem.sku = "";
         }
         
-        // Update price when variant changes
+        // Update price and product details when variant changes
         if (field === 'variant_id' && value) {
           const variant = variants.find(v => v.id === value);
           if (variant) {
             updatedItem.price = variant.price;
+            updatedItem.name = variant.product.name;
+            updatedItem.size = variant.size || "";
+            updatedItem.color = variant.color || "";
+            updatedItem.sku = variant.sku;
           }
         }
         
