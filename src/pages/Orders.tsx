@@ -199,10 +199,10 @@ const Orders = () => {
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "pending": return "secondary";
-      case "in_progress": return "outline";
-      case "shipped": return "default";
-      case "delivered": return "default";
+      case "pending": return "pending";
+      case "in_progress": return "in-progress";
+      case "shipped": return "shipped";
+      case "delivered": return "delivered";
       default: return "secondary";
     }
   };
