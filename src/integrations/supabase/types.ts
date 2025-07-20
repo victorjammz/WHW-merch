@@ -128,71 +128,6 @@ export type Database = {
         }
         Relationships: []
       }
-      event_inventory: {
-        Row: {
-          allocated_at: string
-          event_id: string
-          id: string
-          product_variant_id: string
-          quantity: number
-          updated_at: string
-        }
-        Insert: {
-          allocated_at?: string
-          event_id: string
-          id?: string
-          product_variant_id: string
-          quantity?: number
-          updated_at?: string
-        }
-        Update: {
-          allocated_at?: string
-          event_id?: string
-          id?: string
-          product_variant_id?: string
-          quantity?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "location_inventory_product_variant_id_fkey"
-            columns: ["product_variant_id"]
-            isOneToOne: false
-            referencedRelation: "product_variants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      event_logs: {
-        Row: {
-          action: string
-          event_id: string | null
-          id: string
-          new_values: Json | null
-          old_values: Json | null
-          performed_at: string
-          performed_by: string
-        }
-        Insert: {
-          action: string
-          event_id?: string | null
-          id?: string
-          new_values?: Json | null
-          old_values?: Json | null
-          performed_at?: string
-          performed_by: string
-        }
-        Update: {
-          action?: string
-          event_id?: string | null
-          id?: string
-          new_values?: Json | null
-          old_values?: Json | null
-          performed_at?: string
-          performed_by?: string
-        }
-        Relationships: []
-      }
       event_orders: {
         Row: {
           client_address: string | null
@@ -255,36 +190,6 @@ export type Database = {
           payment_status?: string
           status?: string
           total_amount?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      events: {
-        Row: {
-          created_at: string
-          created_by: string
-          event_date: string
-          id: string
-          location: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          event_date: string
-          id?: string
-          location: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          event_date?: string
-          id?: string
-          location?: string
-          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -550,53 +455,6 @@ export type Database = {
             columns: ["permission_id"]
             isOneToOne: false
             referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      stock_transfers: {
-        Row: {
-          from_event_id: string | null
-          id: string
-          notes: string | null
-          product_variant_id: string
-          quantity: number
-          status: string
-          to_event_id: string | null
-          transfer_type: string
-          transferred_at: string
-          transferred_by: string | null
-        }
-        Insert: {
-          from_event_id?: string | null
-          id?: string
-          notes?: string | null
-          product_variant_id: string
-          quantity: number
-          status?: string
-          to_event_id?: string | null
-          transfer_type: string
-          transferred_at?: string
-          transferred_by?: string | null
-        }
-        Update: {
-          from_event_id?: string | null
-          id?: string
-          notes?: string | null
-          product_variant_id?: string
-          quantity?: number
-          status?: string
-          to_event_id?: string | null
-          transfer_type?: string
-          transferred_at?: string
-          transferred_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "stock_transfers_product_variant_id_fkey"
-            columns: ["product_variant_id"]
-            isOneToOne: false
-            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]

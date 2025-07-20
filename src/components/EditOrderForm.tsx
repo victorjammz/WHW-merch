@@ -4,13 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
-import { Check, ChevronsUpDown, Plus, Minus, AlertTriangle } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Plus, Minus, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,13 +28,6 @@ interface OrderItem {
   available_stock: number;
 }
 
-interface Event {
-  id: string;
-  name: string;
-  event_date: string;
-  location: string;
-}
-
 interface Category {
   id: string;
   name: string;
@@ -57,7 +46,6 @@ interface InventoryItem {
 
 export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [fullName, setFullName] = useState(order?.client_name || "");
   const [email, setEmail] = useState(order?.client_email || "");
   const [phone, setPhone] = useState(order?.client_phone || "");
@@ -66,10 +54,8 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
   const [status, setStatus] = useState(order?.status || "pending");
   const [notes, setNotes] = useState(order?.notes || "");
   const [items, setItems] = useState<OrderItem[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [eventSearchOpen, setEventSearchOpen] = useState(false);
   
   const { toast } = useToast();
 
@@ -113,34 +99,9 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
       setItems(orderItems);
     }
 
-    fetchEvents();
     fetchCategories();
     fetchInventory();
   }, [order]);
-
-  // Set selected event when events are loaded
-  useEffect(() => {
-    if (events.length > 0 && order?.event_name) {
-      const event = events.find(e => e.name === order.event_name);
-      if (event) {
-        setSelectedEvent(event);
-      }
-    }
-  }, [events, order]);
-
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, name, event_date, location')
-        .order('event_date', { ascending: true });
-
-      if (error) throw error;
-      setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    }
-  };
 
   const fetchCategories = async () => {
     try {
@@ -275,7 +236,7 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedEvent || !fullName || !email || !phone || !(postcode && address)) {
+    if (!fullName || !email || !phone || !(postcode && address)) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -292,13 +253,13 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
       );
       
       const orderData = {
-        event_name: selectedEvent.name,
+        event_name: "General Order",
         client_name: fullName,
         client_email: email,
         client_phone: phone,
         client_postcode: postcode,
         client_address: address,
-        event_date: selectedEvent.event_date,
+        event_date: new Date().toISOString().split('T')[0],
         status,
         notes: notes || null,
         items: JSON.stringify(validItems),
@@ -334,56 +295,6 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Select Event *</Label>
-          <Popover open={eventSearchOpen} onOpenChange={setEventSearchOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={eventSearchOpen}
-                className="w-full justify-between"
-              >
-                {selectedEvent ? selectedEvent.name : "Select event..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Search events..." />
-                <CommandList>
-                  <CommandEmpty>No events found.</CommandEmpty>
-                  <CommandGroup>
-                    {events.map((event) => (
-                      <CommandItem
-                        key={event.id}
-                        value={`${event.name} ${event.location}`}
-                        onSelect={() => {
-                          setSelectedEvent(event);
-                          setEventSearchOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedEvent?.id === event.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">{event.name}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(event.event_date), "PPP")} • {event.location}
-                          </span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        <div className="space-y-2">
           <Label htmlFor="full-name">Full Name *</Label>
           <Input
             id="full-name"
@@ -393,9 +304,7 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
             required
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
         <div className="space-y-2">
           <Label htmlFor="email">Email *</Label>
           <Input
@@ -407,7 +316,9 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
             required
           />
         </div>
-        
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="phone">Phone Number *</Label>
           <Input
@@ -418,6 +329,21 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
             placeholder="e.g., +44 1234 567890"
             required
           />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="shipped">Shipped</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -455,21 +381,6 @@ export function EditOrderForm({ order, onSuccess, onCancel }: EditOrderFormProps
             </div>
           </div>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="shipped">Shipped</SelectItem>
-            <SelectItem value="delivered">Delivered</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="space-y-4">

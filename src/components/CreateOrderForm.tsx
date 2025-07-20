@@ -28,12 +28,6 @@ interface OrderItem {
   sku?: string;
 }
 
-interface Event {
-  id: string;
-  name: string;
-  event_date: string;
-  location: string;
-}
 
 interface Category {
   id: string;
@@ -56,7 +50,6 @@ interface ProductVariant {
 
 export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   // Step 1 - Order Details
-  const [selectedEvent, setSelectedEvent] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -83,7 +76,6 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [phoneError, setPhoneError] = useState("");
 
   // Data states
-  const [events, setEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,28 +106,10 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   };
 
   useEffect(() => {
-    fetchEvents();
     fetchCategories();
     fetchProductVariants();
   }, []);
 
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('event_date', { ascending: true });
-
-      if (error) throw error;
-      setEvents(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch events: " + error.message,
-        variant: "destructive"
-      });
-    }
-  };
 
   const fetchCategories = async () => {
     try {
@@ -245,7 +219,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
 
   const handleNextStep = () => {
     // Validate required fields for step 1
-    if (!selectedEvent || !fullName || !email || !phone || !address || !city || !postcode || !country) {
+    if (!fullName || !email || !phone || !address || !city || !postcode || !country) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields including complete address",
@@ -293,8 +267,8 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       const { data, error } = await supabase
         .from('event_orders')
         .insert({
-          event_name: events.find(e => e.id === selectedEvent)?.name || "",
-          event_date: events.find(e => e.id === selectedEvent)?.event_date || "",
+          event_name: "General Order",
+          event_date: new Date().toISOString().split('T')[0],
           client_name: fullName,
           client_email: email,
           client_phone: phone,
@@ -322,7 +296,6 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       });
 
       // Reset form
-      setSelectedEvent("");
       setFullName("");
       setEmail("");
       setPhone("");
@@ -353,22 +326,6 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {currentStep === 1 ? (
         <div className="space-y-6">
-          {/* Event Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="event">Event *</Label>
-            <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select an event" />
-              </SelectTrigger>
-              <SelectContent>
-                {events.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.name} - {new Date(event.event_date).toLocaleDateString()} ({event.location})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* Customer Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
