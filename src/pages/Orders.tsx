@@ -530,20 +530,20 @@ const Orders = () => {
                       <TableCell>{new Date(order.event_date).toLocaleDateString()}</TableCell>
                       <TableCell>{Array.isArray(order.items) ? order.items.length : 0} items</TableCell>
                       <TableCell>{formatPrice(order.total_amount)}</TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           <Select 
                             value={order.status} 
                             onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
                           >
-                            <SelectTrigger className="w-32 p-0 border-none bg-transparent hover:bg-transparent">
+                            <SelectTrigger className="w-36 h-8 p-1 border-none bg-transparent hover:bg-transparent">
                               <SelectValue>
-                                <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-fit">
+                                <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-full h-6 px-2 text-xs">
                                   {getStatusIcon(order.status)}
-                                  <span className="capitalize">{order.status.replace('_', ' ')}</span>
+                                  <span className="capitalize whitespace-nowrap">{order.status.replace('_', ' ')}</span>
                                 </Badge>
                               </SelectValue>
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="z-50">
                               <SelectItem value="pending">
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-3 w-3" />
