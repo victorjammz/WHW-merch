@@ -1,4 +1,4 @@
-import { Package, BarChart3, Users, Settings, QrCode, ShieldAlert, ShoppingCart, TrendingUp, FileText, CircleUserRound, Shield, Calendar } from "lucide-react";
+import { Package, BarChart3, Users, Settings, QrCode, ShieldAlert, ShoppingCart, TrendingUp, FileText, CircleUserRound, Shield, Calendar, Building2, MapPin } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,14 @@ const navigationItems: NavigationItem[] = [{
   title: "Inventory",
   url: "/inventory",
   icon: Package
+}, {
+  title: "Locations",
+  url: "/locations",
+  icon: Building2
+}, {
+  title: "Location Inventory",
+  url: "/location-inventory",
+  icon: MapPin
 }, {
   title: "Customers",
   url: "/customers",
