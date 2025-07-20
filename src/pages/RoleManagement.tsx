@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Search, Shield, User, Check, RefreshCw } from "lucide-react";
+import { Users, Search, Shield, User, Check, RefreshCw, Settings, UserCog } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,14 +34,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { usePermissions } from "@/hooks/usePermissions";
 import { formatDateWithUserSettings } from "@/utils/dateFormatting";
+import PermissionsManager from "@/components/PermissionsManager";
 
 interface UserProfile {
   id: string;
   email: string;
   first_name: string | null;
   last_name: string | null;
-  role: 'admin' | 'employee';
+  role: 'admin' | 'manager' | 'employee' | 'viewer';
   created_at: string;
   selected?: boolean;
 }
@@ -41,13 +52,16 @@ export default function RoleManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'employee' | ''>('');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee' | 'viewer' | ''>('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
+  const [selectedRoleForPermissions, setSelectedRoleForPermissions] = useState<'admin' | 'manager' | 'employee' | 'viewer'>('employee');
   
   const { user: currentUser, isAdmin } = useAuth();
   const { toast } = useToast();
   const { settings } = useUserSettings();
+  const { allPermissions, rolePermissions, updateRolePermissions, isLoading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
     fetchUsers();
@@ -183,19 +197,89 @@ export default function RoleManagement() {
     return user.email[0].toUpperCase();
   };
 
+  const getRoleBadge = (role: string) => {
+    const roleConfig = {
+      admin: { icon: Shield, label: 'Administrator', className: 'bg-red-500 text-white' },
+      manager: { icon: UserCog, label: 'Manager', className: 'bg-blue-500 text-white' },
+      employee: { icon: User, label: 'Employee', className: 'bg-green-500 text-white' },
+      viewer: { icon: User, label: 'Viewer', className: 'bg-gray-500 text-white' }
+    };
+
+    const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.employee;
+    const Icon = config.icon;
+
+    return (
+      <Badge className={config.className}>
+        <Icon className="h-3 w-3 mr-1" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const handleManagePermissions = (role: 'admin' | 'manager' | 'employee' | 'viewer') => {
+    setSelectedRoleForPermissions(role);
+    setIsPermissionsDialogOpen(true);
+  };
+
+  const handleUpdatePermissions = async (permissionIds: string[]) => {
+    const result = await updateRolePermissions(selectedRoleForPermissions, permissionIds);
+    
+    if (result.success) {
+      toast({
+        title: "Permissions updated",
+        description: `Successfully updated permissions for ${selectedRoleForPermissions} role`,
+      });
+      setIsPermissionsDialogOpen(false);
+    } else {
+      toast({
+        title: "Error updating permissions",
+        description: "An error occurred while updating permissions",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Role Management</h1>
-          <p className="text-muted-foreground">
-            Assign access levels to users in the system
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Role Management</h1>
+            <p className="text-muted-foreground">
+              Assign access levels to users in the system
+            </p>
+          </div>
         </div>
-        <Button variant="outline" onClick={fetchUsers}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Settings className="mr-2 h-4 w-4" />
+                Manage Permissions
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Manage Role Permissions</DialogTitle>
+                <DialogDescription>
+                  Configure what actions each role can perform in the system
+                </DialogDescription>
+              </DialogHeader>
+              <PermissionsManager
+                allPermissions={allPermissions}
+                rolePermissions={rolePermissions}
+                selectedRole={selectedRoleForPermissions}
+                onRoleChange={setSelectedRoleForPermissions}
+                onUpdatePermissions={handleUpdatePermissions}
+                isLoading={permissionsLoading}
+              />
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" onClick={fetchUsers}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -223,22 +307,24 @@ export default function RoleManagement() {
             <div className="flex items-center gap-3">
               {selectedCount > 0 && (
                 <>
-                  <span className="text-sm text-muted-foreground">
-                    {selectedCount} user(s) selected
-                  </span>
-                  <Select value={selectedRole} onValueChange={(value: 'admin' | 'employee') => setSelectedRole(value)}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="employee">Employee</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    onClick={updateSelectedUsersRole} 
-                    disabled={isUpdating || !selectedRole}
-                  >
+                   <span className="text-sm text-muted-foreground">
+                     {selectedCount} user(s) selected
+                   </span>
+                   <Select value={selectedRole} onValueChange={(value: 'admin' | 'manager' | 'employee' | 'viewer') => setSelectedRole(value)}>
+                     <SelectTrigger className="w-[180px]">
+                       <SelectValue placeholder="Select role" />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="admin">Administrator</SelectItem>
+                       <SelectItem value="manager">Manager</SelectItem>
+                       <SelectItem value="employee">Employee</SelectItem>
+                       <SelectItem value="viewer">Viewer</SelectItem>
+                     </SelectContent>
+                   </Select>
+                   <Button 
+                     onClick={updateSelectedUsersRole} 
+                     disabled={isUpdating || !selectedRole}
+                   >
                     {isUpdating ? (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -322,27 +408,9 @@ export default function RoleManagement() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            user.role === 'admin'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary text-secondary-foreground'
-                          }
-                        >
-                          {user.role === 'admin' ? (
-                            <div className="flex items-center gap-1">
-                              <Shield className="h-3 w-3 mr-1" />
-                              Administrator
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <User className="h-3 w-3 mr-1" />
-                              Employee
-                            </div>
-                          )}
-                        </Badge>
-                      </TableCell>
+                       <TableCell>
+                         {getRoleBadge(user.role)}
+                       </TableCell>
                       <TableCell>
                         {formatDateWithUserSettings(user.created_at, settings?.date_format)}
                       </TableCell>
@@ -353,24 +421,62 @@ export default function RoleManagement() {
             </Table>
           </div>
           
-          <div className="mt-6 text-sm">
-            <h3 className="font-medium mb-2">About Access Levels:</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <Badge className="bg-primary text-primary-foreground mt-0.5">
-                  <Shield className="h-3 w-3 mr-1" />
-                  Administrator
-                </Badge>
-                <span>Full access to all system features including inventory management and user administration</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Badge className="bg-secondary text-secondary-foreground mt-0.5">
-                  <User className="h-3 w-3 mr-1" />
-                  Employee
-                </Badge>
-                <span>Access to view inventory and customers, but cannot modify inventory or manage users</span>
-              </li>
-            </ul>
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                {getRoleBadge('admin')}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleManagePermissions('admin')}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">Full access to all system features including user management</p>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                {getRoleBadge('manager')}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleManagePermissions('manager')}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">Manage inventory, orders, and customers. View analytics</p>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                {getRoleBadge('employee')}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleManagePermissions('employee')}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">Process orders and manage customers. Read-only access to inventory</p>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                {getRoleBadge('viewer')}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleManagePermissions('viewer')}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">Read-only access to all data. Cannot make changes</p>
+            </div>
           </div>
         </CardContent>
       </Card>

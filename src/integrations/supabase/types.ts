@@ -610,6 +610,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      current_user_has_permission: {
+        Args: { permission_name: string }
+        Returns: boolean
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -624,6 +628,10 @@ export type Database = {
       }
       soft_delete_order: {
         Args: { order_id: string }
+        Returns: boolean
+      }
+      user_has_permission: {
+        Args: { user_id: string; permission_name: string }
         Returns: boolean
       }
     }
