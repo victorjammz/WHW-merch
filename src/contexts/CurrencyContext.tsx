@@ -11,12 +11,14 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GBP: '£',
-  EUR: '€'
+  EUR: '€',
+  USD: '$'
 };
 
 const CURRENCY_NAMES: Record<string, string> = {
   GBP: 'British Pound',
-  EUR: 'Euro'
+  EUR: 'Euro',
+  USD: 'US Dollar'
 };
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
@@ -35,6 +37,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       case 'EUR':
         return `${symbol}${price.toFixed(2)}`;
       case 'GBP':
+        return `${symbol}${price.toFixed(2)}`;
+      case 'USD':
         return `${symbol}${price.toFixed(2)}`;
       default:
         return `${symbol}${price.toFixed(2)}`;

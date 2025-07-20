@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { EnhancedItemSelector } from "@/components/EnhancedItemSelector";
+import { ProductVariantSelector } from "@/components/ProductVariantSelector";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Location {
   id: string;
@@ -64,6 +65,7 @@ const LocationInventory = () => {
     notes: ""
   });
   const { toast } = useToast();
+  const { formatPrice } = useCurrency();
 
   useEffect(() => {
     fetchLocations();
@@ -317,7 +319,7 @@ const LocationInventory = () => {
               <DialogTitle>Transfer Stock to Location</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <EnhancedItemSelector
+              <ProductVariantSelector
                 value={transferFormData.product_variant_id}
                 onValueChange={(value) => setTransferFormData(prev => ({ ...prev, product_variant_id: value }))}
                 productVariants={productVariants}
@@ -441,11 +443,11 @@ const LocationInventory = () => {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  ${filteredInventory.length > 0 
-                    ? (filteredInventory.reduce((sum, item) => sum + (item.product_variant.price * item.quantity), 0) / filteredInventory.length).toFixed(0)
-                    : 0}
-                </div>
+                 <div className="text-2xl font-bold">
+                   {filteredInventory.length > 0 
+                     ? formatPrice(filteredInventory.reduce((sum, item) => sum + (item.product_variant.price * item.quantity), 0) / filteredInventory.length)
+                     : formatPrice(0)}
+                 </div>
                 <p className="text-xs text-muted-foreground">
                   Per SKU
                 </p>
@@ -526,12 +528,12 @@ const LocationInventory = () => {
                           <TableCell>
                             <span className="font-medium">{item.quantity}</span>
                           </TableCell>
-                          <TableCell>${item.product_variant.price.toFixed(2)}</TableCell>
-                          <TableCell>
-                            <span className="font-medium">
-                              ${(item.product_variant.price * item.quantity).toFixed(2)}
-                            </span>
-                          </TableCell>
+                          <TableCell>{formatPrice(item.product_variant.price)}</TableCell>
+                           <TableCell>
+                             <span className="font-medium">
+                               {formatPrice(item.product_variant.price * item.quantity)}
+                             </span>
+                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {new Date(item.allocated_at).toLocaleDateString()}
                           </TableCell>

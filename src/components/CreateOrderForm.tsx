@@ -492,11 +492,13 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
             )}
           </div>
 
-          {/* Order Items */}
-          <EnhancedItemSelector 
-            items={orderItems}
-            onItemsChange={setOrderItems}
-          />
+          {/* Order Items - TODO: Fix this component */}
+          <div className="space-y-2">
+            <Label>Order Items</Label>
+            <div className="text-sm text-muted-foreground">
+              Item selection functionality needs to be restored
+            </div>
+          </div>
 
           {/* Notes */}
           <div className="space-y-2">
