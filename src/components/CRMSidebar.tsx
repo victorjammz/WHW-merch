@@ -28,13 +28,13 @@ const navigationItems: NavigationItem[] = [{
   url: "/location-inventory",
   icon: MapPin
 }, {
-  title: "Customers",
-  url: "/customers",
-  icon: Users
-}, {
   title: "Orders",
   url: "/orders",
   icon: ShoppingCart
+}, {
+  title: "Customers",
+  url: "/customers",
+  icon: Users
 }, {
   title: "Analytics",
   url: "/analytics",
