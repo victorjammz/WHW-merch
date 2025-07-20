@@ -761,18 +761,42 @@ const Orders = () => {
 
       {/* View Order Dialog */}
       <Dialog open={isViewOrderOpen} onOpenChange={setIsViewOrderOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              Order Details - {selectedOrder?.id}
+              Order Details - {selectedOrder?.id?.substring(0, 8)}...
             </DialogTitle>
             <DialogDescription>
-              View complete order information
+              View complete order information including product variants
             </DialogDescription>
           </DialogHeader>
           {selectedOrder && (
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-6 py-4">
+              {/* Order Status and Payment Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Order Status</Label>
+                  <Badge variant={getStatusVariant(selectedOrder.status)} className="mt-1 flex items-center gap-1 w-fit">
+                    {getStatusIcon(selectedOrder.status)}
+                    <span className="capitalize">{selectedOrder.status.replace('_', ' ')}</span>
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Payment Status</Label>
+                  <Badge 
+                    variant={selectedOrder.payment_status === 'paid' ? 'shipped' : selectedOrder.payment_status === 'partially_paid' ? 'in-progress' : 'pending'} 
+                    className="mt-1 flex items-center gap-1 w-fit"
+                  >
+                    {selectedOrder.payment_status === 'paid' ? <CheckCircle className="h-3 w-3" /> : 
+                     selectedOrder.payment_status === 'partially_paid' ? <Clock className="h-3 w-3" /> :
+                     <XCircle className="h-3 w-3" />}
+                    <span className="capitalize">{selectedOrder.payment_status?.replace('_', ' ') || 'Not Paid'}</span>
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Event and Client Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">Event Name</Label>
@@ -806,21 +830,39 @@ const Orders = () => {
                 )}
               </div>
 
-              {/* Address Information */}
+              {/* Full Address Information */}
               {(selectedOrder.client_address || selectedOrder.client_postcode) && (
                 <div>
-                  <Label className="text-sm font-medium">Address</Label>
-                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 mt-0.5" />
-                    <div>
+                  <Label className="text-sm font-medium">Full Address</Label>
+                  <div className="flex items-start gap-2 text-sm text-muted-foreground mt-1 p-3 bg-muted/50 rounded-lg">
+                    <MapPin className="h-4 w-4 mt-0.5 text-primary" />
+                    <div className="space-y-1">
                       {selectedOrder.client_address && (
-                        <p>{selectedOrder.client_address}</p>
+                        <p className="font-medium">{selectedOrder.client_address}</p>
                       )}
                       {selectedOrder.client_postcode && (
-                        <p>{selectedOrder.client_postcode}</p>
+                        <p className="text-xs uppercase tracking-wide">{selectedOrder.client_postcode}</p>
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Payment Details */}
+              {(selectedOrder.payment_method || selectedOrder.payment_reference) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedOrder.payment_method && (
+                    <div>
+                      <Label className="text-sm font-medium">Payment Method</Label>
+                      <p className="text-sm text-muted-foreground capitalize">{selectedOrder.payment_method}</p>
+                    </div>
+                  )}
+                  {selectedOrder.payment_reference && (
+                    <div>
+                      <Label className="text-sm font-medium">Payment Reference</Label>
+                      <p className="text-sm text-muted-foreground font-mono">{selectedOrder.payment_reference}</p>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -831,34 +873,49 @@ const Orders = () => {
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Total Amount</Label>
-                  <p className="text-sm text-muted-foreground">{formatPrice(selectedOrder.total_amount)}</p>
+                  <p className="text-lg font-bold text-primary">{formatPrice(selectedOrder.total_amount)}</p>
                 </div>
               </div>
               
-              <div>
-                <Label className="text-sm font-medium">Status</Label>
-                <Badge variant={getStatusVariant(selectedOrder.status)} className="mt-1 flex items-center gap-1 w-fit">
-                  {getStatusIcon(selectedOrder.status)}
-                  {selectedOrder.status}
-                </Badge>
-              </div>
-              
-              {/* Order Items */}
+              {/* Product Variants - Enhanced Display */}
               {selectedOrder.items && Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium">Order Items</Label>
-                  <div className="mt-2 space-y-2">
+                  <Label className="text-sm font-medium">Product Variants ({selectedOrder.items.length} items)</Label>
+                  <div className="mt-3 space-y-3">
                     {selectedOrder.items.map((item: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                        <div>
-                          <p className="text-sm font-medium">{item.name}</p>
-                          {item.size && <p className="text-xs text-muted-foreground">Size: {item.size}</p>}
-                          {item.color && <p className="text-xs text-muted-foreground">Color: {item.color}</p>}
+                      <div key={index} className="border rounded-lg p-4 bg-card">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-foreground">{item.name}</h4>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {item.size && (
+                                <Badge variant="outline" className="text-xs">
+                                  Size: {item.size}
+                                </Badge>
+                              )}
+                              {item.color && (
+                                <Badge variant="outline" className="text-xs">
+                                  Color: {item.color}
+                                </Badge>
+                              )}
+                              {item.sku && (
+                                <Badge variant="secondary" className="text-xs font-mono">
+                                  SKU: {item.sku}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-sm font-medium">Qty: {item.quantity}</p>
+                            <p className="text-xs text-muted-foreground">@ {formatPrice(item.price)}</p>
+                            <p className="text-sm font-bold text-primary">{formatPrice(item.price * item.quantity)}</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm">Qty: {item.quantity}</p>
-                          <p className="text-sm font-medium">{formatPrice(item.price * item.quantity)}</p>
-                        </div>
+                        {item.notes && (
+                          <div className="mt-2 pt-2 border-t">
+                            <p className="text-xs text-muted-foreground italic">Notes: {item.notes}</p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -867,8 +924,10 @@ const Orders = () => {
               
               {selectedOrder.notes && (
                 <div>
-                  <Label className="text-sm font-medium">Notes</Label>
-                  <p className="text-sm text-muted-foreground">{selectedOrder.notes}</p>
+                  <Label className="text-sm font-medium">Order Notes</Label>
+                  <div className="mt-1 p-3 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">{selectedOrder.notes}</p>
+                  </div>
                 </div>
               )}
             </div>
