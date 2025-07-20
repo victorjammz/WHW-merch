@@ -1,40 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-interface OrderItem {
-  id: string;
-  category: string;
-  product_id: string;
-  variant_id: string;
-  quantity: number;
-  price: number;
-  // Add actual product variant details for display
-  name?: string;
-  size?: string;
-  color?: string;
-  sku?: string;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-}
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface ProductVariant {
   id: string;
-  product_id: string;
   sku: string;
-  size: string | null;
   color: string | null;
+  size: string | null;
   price: number;
   quantity: number;
   product: {
@@ -44,270 +22,147 @@ interface ProductVariant {
 }
 
 interface EnhancedItemSelectorProps {
-  items: OrderItem[];
-  onItemsChange: (items: OrderItem[]) => void;
+  value: string;
+  onValueChange: (value: string) => void;
+  productVariants: ProductVariant[];
+  placeholder?: string;
+  label?: string;
 }
 
-export function EnhancedItemSelector({ items, onItemsChange }: EnhancedItemSelectorProps) {
-  const [categories, setCategories] = useState<string[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [variants, setVariants] = useState<ProductVariant[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { toast } = useToast();
+export const EnhancedItemSelector = ({
+  value,
+  onValueChange,
+  productVariants,
+  placeholder = "Select product variant",
+  label = "Product Variant"
+}: EnhancedItemSelectorProps) => {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const selectedVariant = productVariants.find(variant => variant.id === value);
 
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Fetch categories
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from('categories')
-        .select('name')
-        .order('name');
-      
-      if (categoriesError) throw categoriesError;
-      setCategories(categoriesData.map(c => c.name));
-
-      // Fetch products
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('id, name, category')
-        .order('name');
-      
-      if (productsError) throw productsError;
-      setProducts(productsData);
-
-      // Fetch variants with product details
-      const { data: variantsData, error: variantsError } = await supabase
-        .from('product_variants')
-        .select(`
-          *,
-          product:products(name, category)
-        `)
-        .order('sku');
-      
-      if (variantsError) throw variantsError;
-      setVariants(variantsData);
-      
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch inventory data: " + error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const addItem = () => {
-    const newId = (items.length + 1).toString();
-    const newItems = [...items, { 
-      id: newId, 
-      category: "", 
-      product_id: "", 
-      variant_id: "", 
-      quantity: 1, 
-      price: 0 
-    }];
-    onItemsChange(newItems);
-  };
-
-  const removeItem = (id: string) => {
-    if (items.length > 1) {
-      onItemsChange(items.filter(item => item.id !== id));
-    }
-  };
-
-  const updateItem = (id: string, field: keyof OrderItem, value: string | number) => {
-    const updatedItems = items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        
-        // Reset dependent fields when category changes
-        if (field === 'category') {
-          updatedItem.product_id = "";
-          updatedItem.variant_id = "";
-          updatedItem.price = 0;
-        }
-        
-        // Reset variant when product changes
-        if (field === 'product_id') {
-          updatedItem.variant_id = "";
-          updatedItem.price = 0;
-          updatedItem.name = "";
-          updatedItem.size = "";
-          updatedItem.color = "";
-          updatedItem.sku = "";
-        }
-        
-        // Update price and product details when variant changes
-        if (field === 'variant_id' && value) {
-          const variant = variants.find(v => v.id === value);
-          if (variant) {
-            updatedItem.price = variant.price;
-            updatedItem.name = variant.product.name;
-            updatedItem.size = variant.size || "";
-            updatedItem.color = variant.color || "";
-            updatedItem.sku = variant.sku;
-          }
-        }
-        
-        return updatedItem;
-      }
-      return item;
-    });
-    onItemsChange(updatedItems);
-  };
-
-  const getProductsForCategory = (category: string) => {
-    return products.filter(p => p.category === category);
-  };
-
-  const getVariantsForProduct = (productId: string) => {
-    return variants.filter(v => v.product_id === productId);
-  };
-
-  const getVariantDisplay = (variant: ProductVariant) => {
-    const parts = [];
-    if (variant.color) parts.push(variant.color);
-    if (variant.size) parts.push(variant.size);
-    if (parts.length === 0) parts.push('Standard');
-    return parts.join(', ');
-  };
-
-  const calculateTotal = () => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  if (isLoading) {
-    return <div className="text-center py-4">Loading inventory...</div>;
-  }
+  const filteredVariants = productVariants.filter(variant => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      variant.product.name.toLowerCase().includes(searchLower) ||
+      variant.sku?.toLowerCase().includes(searchLower) ||
+      variant.color?.toLowerCase().includes(searchLower) ||
+      variant.size?.toLowerCase().includes(searchLower) ||
+      variant.product.category.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Order Items</h3>
-        <Button type="button" onClick={addItem} size="sm">
-          Add Item
-        </Button>
-      </div>
-      
-      {items.map((item, index) => (
-        <Card key={item.id} className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-            {/* Category Selection */}
-            <div className="space-y-2">
-              <Label>Category *</Label>
-              <Select value={item.category} onValueChange={(value) => updateItem(item.id, 'category', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Product Selection */}
-            <div className="space-y-2">
-              <Label>Product *</Label>
-              <Select 
-                value={item.product_id} 
-                onValueChange={(value) => updateItem(item.id, 'product_id', value)}
-                disabled={!item.category}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getProductsForCategory(item.category).map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Variant Selection (Color/Size) */}
-            <div className="space-y-2">
-              <Label>Variant *</Label>
-              <Select 
-                value={item.variant_id} 
-                onValueChange={(value) => updateItem(item.id, 'variant_id', value)}
-                disabled={!item.product_id}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select variant" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getVariantsForProduct(item.product_id).map((variant) => (
-                    <SelectItem key={variant.id} value={variant.id}>
-                      <div className="flex flex-col text-left">
-                        <span>{getVariantDisplay(variant)}</span>
-                        <span className="text-xs text-muted-foreground">
-                          £{variant.price} - Stock: {variant.quantity}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Quantity */}
-            <div className="space-y-2">
-              <Label>Quantity *</Label>
-              <Input
-                type="number"
-                min="1"
-                value={item.quantity}
-                onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-              />
-            </div>
-            
-            {/* Price Display */}
-            <div className="space-y-2">
-              <Label>Total</Label>
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">£{item.price.toFixed(2)} each</span>
-                <Badge variant="secondary">
-                  £{(item.price * item.quantity).toFixed(2)}
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between text-left font-normal"
+          >
+            {selectedVariant ? (
+              <div className="flex items-center justify-between w-full">
+                <div className="flex flex-col">
+                  <div className="font-medium">{selectedVariant.product.name}</div>
+                  <div className="text-sm text-muted-foreground flex items-center gap-2">
+                    <span>SKU: {selectedVariant.sku}</span>
+                    {selectedVariant.color && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedVariant.color}
+                      </Badge>
+                    )}
+                    {selectedVariant.size && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedVariant.size}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <Badge variant="outline" className="ml-2">
+                  {selectedVariant.quantity} available
                 </Badge>
               </div>
-            </div>
-            
-            {/* Remove Button */}
-            <div className="flex justify-end">
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={() => removeItem(item.id)}
-                disabled={items.length === 1}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            ) : (
+              placeholder
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[500px] p-0" align="start">
+          <div className="p-4 border-b">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products, SKU, color, size..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
             </div>
           </div>
-        </Card>
-      ))}
-      
-      <div className="flex justify-end">
-        <div className="text-lg font-semibold">
-          Total: £{calculateTotal().toFixed(2)}
-        </div>
-      </div>
+          <ScrollArea className="h-60">
+            <div className="p-2">
+              {filteredVariants.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">
+                  No products found
+                </div>
+              ) : (
+                filteredVariants.map((variant) => (
+                  <div
+                    key={variant.id}
+                    className={cn(
+                      "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                      value === variant.id && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={() => {
+                      onValueChange(variant.id);
+                      setOpen(false);
+                      setSearchTerm("");
+                    }}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex flex-col gap-1">
+                        <div className="font-medium">{variant.product.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          SKU: {variant.sku} • Category: {variant.product.category}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {variant.color && (
+                            <Badge variant="secondary" className="text-xs">
+                              Color: {variant.color}
+                            </Badge>
+                          )}
+                          {variant.size && (
+                            <Badge variant="secondary" className="text-xs">
+                              Size: {variant.size}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-xs">
+                            ${variant.price}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={variant.quantity > 10 ? "default" : variant.quantity > 0 ? "secondary" : "destructive"} 
+                          className="text-xs"
+                        >
+                          {variant.quantity} available
+                        </Badge>
+                        {value === variant.id && (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
     </div>
   );
-}
+};

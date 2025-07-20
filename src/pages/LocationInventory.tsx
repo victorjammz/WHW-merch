@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EnhancedItemSelector } from "@/components/EnhancedItemSelector";
 
 interface Location {
   id: string;
@@ -316,26 +317,13 @@ const LocationInventory = () => {
               <DialogTitle>Transfer Stock to Location</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="product">Product Variant</Label>
-                <Select value={transferFormData.product_variant_id} onValueChange={(value) => setTransferFormData(prev => ({ ...prev, product_variant_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product variant" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 z-50">
-                    {productVariants.map((variant) => (
-                      <SelectItem key={variant.id} value={variant.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{variant.product.name} - {variant.sku}</span>
-                          <Badge variant="outline" className="ml-2">
-                            {variant.quantity} available
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <EnhancedItemSelector
+                value={transferFormData.product_variant_id}
+                onValueChange={(value) => setTransferFormData(prev => ({ ...prev, product_variant_id: value }))}
+                productVariants={productVariants}
+                placeholder="Select product variant to transfer"
+                label="Product Variant"
+              />
               <div className="space-y-2">
                 <Label htmlFor="location">To Location</Label>
                 <Select value={transferFormData.to_location_id} onValueChange={(value) => setTransferFormData(prev => ({ ...prev, to_location_id: value }))}>
