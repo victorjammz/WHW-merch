@@ -128,6 +128,48 @@ export type Database = {
         }
         Relationships: []
       }
+      event_inventory: {
+        Row: {
+          allocated_at: string
+          event_id: string
+          id: string
+          product_variant_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          allocated_at?: string
+          event_id: string
+          id?: string
+          product_variant_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          allocated_at?: string
+          event_id?: string
+          id?: string
+          product_variant_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_inventory_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_inventory_product_variant_id_fkey"
+            columns: ["product_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_orders: {
         Row: {
           client_address: string | null
@@ -190,6 +232,45 @@ export type Database = {
           payment_status?: string
           status?: string
           total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          address: string | null
+          code: string
+          created_at: string
+          id: string
+          manager_email: string | null
+          manager_name: string | null
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          manager_email?: string | null
+          manager_name?: string | null
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          manager_email?: string | null
+          manager_name?: string | null
+          name?: string
+          phone?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []

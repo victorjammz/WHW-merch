@@ -18,6 +18,8 @@ import { lazy, Suspense } from "react";
 const Index = lazy(() => import("./pages/Index"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const Customers = lazy(() => import("./pages/Customers"));
+const Events = lazy(() => import("./pages/Events"));
+const EventInventory = lazy(() => import("./pages/EventInventory"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Barcodes = lazy(() => import("./pages/Barcodes"));
@@ -76,6 +78,8 @@ const AppRoutes = () => {
                         
                         {/* Routes accessible by both roles */}
                         <Route path="/inventory" element={<Inventory />} />
+                        <Route path="/events" element={<Events />} />
+                        <Route path="/event-inventory" element={<EventInventory />} />
                         
                         {/* Admin-only routes */}
                         <Route 
