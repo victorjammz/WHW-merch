@@ -128,6 +128,41 @@ export type Database = {
         }
         Relationships: []
       }
+      event_inventory: {
+        Row: {
+          allocated_at: string
+          event_id: string
+          id: string
+          product_variant_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          allocated_at?: string
+          event_id: string
+          id?: string
+          product_variant_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          allocated_at?: string
+          event_id?: string
+          id?: string
+          product_variant_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_inventory_product_variant_id_fkey"
+            columns: ["product_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_logs: {
         Row: {
           action: string
@@ -300,87 +335,6 @@ export type Database = {
           quantity?: number
           size?: string | null
           sku?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      location_inventory: {
-        Row: {
-          allocated_at: string
-          id: string
-          location_id: string
-          product_variant_id: string
-          quantity: number
-          updated_at: string
-        }
-        Insert: {
-          allocated_at?: string
-          id?: string
-          location_id: string
-          product_variant_id: string
-          quantity?: number
-          updated_at?: string
-        }
-        Update: {
-          allocated_at?: string
-          id?: string
-          location_id?: string
-          product_variant_id?: string
-          quantity?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "location_inventory_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "location_inventory_product_variant_id_fkey"
-            columns: ["product_variant_id"]
-            isOneToOne: false
-            referencedRelation: "product_variants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      locations: {
-        Row: {
-          address: string | null
-          code: string
-          created_at: string
-          id: string
-          manager_email: string | null
-          manager_name: string | null
-          name: string
-          phone: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          code: string
-          created_at?: string
-          id?: string
-          manager_email?: string | null
-          manager_name?: string | null
-          name: string
-          phone?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          code?: string
-          created_at?: string
-          id?: string
-          manager_email?: string | null
-          manager_name?: string | null
-          name?: string
-          phone?: string | null
           status?: string
           updated_at?: string
         }
@@ -602,61 +556,47 @@ export type Database = {
       }
       stock_transfers: {
         Row: {
-          from_location_id: string | null
+          from_event_id: string | null
           id: string
           notes: string | null
           product_variant_id: string
           quantity: number
           status: string
-          to_location_id: string | null
+          to_event_id: string | null
           transfer_type: string
           transferred_at: string
           transferred_by: string | null
         }
         Insert: {
-          from_location_id?: string | null
+          from_event_id?: string | null
           id?: string
           notes?: string | null
           product_variant_id: string
           quantity: number
           status?: string
-          to_location_id?: string | null
+          to_event_id?: string | null
           transfer_type: string
           transferred_at?: string
           transferred_by?: string | null
         }
         Update: {
-          from_location_id?: string | null
+          from_event_id?: string | null
           id?: string
           notes?: string | null
           product_variant_id?: string
           quantity?: number
           status?: string
-          to_location_id?: string | null
+          to_event_id?: string | null
           transfer_type?: string
           transferred_at?: string
           transferred_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "stock_transfers_from_location_id_fkey"
-            columns: ["from_location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "stock_transfers_product_variant_id_fkey"
             columns: ["product_variant_id"]
             isOneToOne: false
             referencedRelation: "product_variants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_transfers_to_location_id_fkey"
-            columns: ["to_location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
             referencedColumns: ["id"]
           },
         ]
