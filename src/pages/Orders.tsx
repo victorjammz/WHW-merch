@@ -878,7 +878,7 @@ const Orders = () => {
               </div>
               
               {/* Product Variants - Enhanced Display */}
-              {selectedOrder.items && Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 && (
+              {selectedOrder.items && Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 ? (
                 <div>
                   <Label className="text-sm font-medium">Product Variants ({selectedOrder.items.length} items)</Label>
                   <div className="mt-3 space-y-3">
@@ -886,7 +886,9 @@ const Orders = () => {
                       <div key={index} className="border rounded-lg p-4 bg-card">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-foreground">{item.name}</h4>
+                            <h4 className="text-sm font-semibold text-foreground">
+                              {item.name || 'Product Name Not Available'}
+                            </h4>
                             <div className="flex flex-wrap gap-2 mt-2">
                               {item.size && (
                                 <Badge variant="outline" className="text-xs">
@@ -903,12 +905,23 @@ const Orders = () => {
                                   SKU: {item.sku}
                                 </Badge>
                               )}
+                              {item.variant_id && (
+                                <Badge variant="secondary" className="text-xs font-mono">
+                                  Variant ID: {item.variant_id}
+                                </Badge>
+                              )}
+                            </div>
+                            {/* Debug information - temporarily show all item properties */}
+                            <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
+                              <p className="font-mono text-muted-foreground">
+                                Debug: {JSON.stringify(item, null, 2)}
+                              </p>
                             </div>
                           </div>
                           <div className="text-right ml-4">
-                            <p className="text-sm font-medium">Qty: {item.quantity}</p>
-                            <p className="text-xs text-muted-foreground">@ {formatPrice(item.price)}</p>
-                            <p className="text-sm font-bold text-primary">{formatPrice(item.price * item.quantity)}</p>
+                            <p className="text-sm font-medium">Qty: {item.quantity || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">@ {formatPrice(item.price || 0)}</p>
+                            <p className="text-sm font-bold text-primary">{formatPrice((item.price || 0) * (item.quantity || 0))}</p>
                           </div>
                         </div>
                         {item.notes && (
@@ -918,6 +931,17 @@ const Orders = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Label className="text-sm font-medium">Product Variants</Label>
+                  <p className="text-sm text-muted-foreground mt-1">No items found in this order</p>
+                  {/* Debug: Show raw items data */}
+                  <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
+                    <p className="font-mono text-muted-foreground">
+                      Debug - Raw items: {JSON.stringify(selectedOrder.items, null, 2)}
+                    </p>
                   </div>
                 </div>
               )}
