@@ -16,6 +16,9 @@ import { TestDataHelper } from "@/components/TestDataHelper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { HelpTooltip } from "@/components/HelpTooltip";
+import { HelpSection } from "@/components/HelpSection";
+import { HelpButton } from "@/components/HelpButton";
 
 interface ProductVariant {
   id: string;
@@ -327,27 +330,34 @@ const Inventory = () => {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      <HelpButton />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Inventory Management</h1>
+          <HelpTooltip content="This page allows you to manage all your product inventory, track stock levels, and organize items by categories.">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Inventory Management</h1>
+          </HelpTooltip>
           <p className="text-sm md:text-base text-muted-foreground">
             Manage your warehouse inventory and stock levels
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <BarcodeScannerInventory 
-            onInventoryUpdate={() => {
-              // Refresh inventory data
-              window.location.reload();
-            }} 
-          />
+          <HelpTooltip content="Scan barcodes to quickly add or update inventory items" showIcon={false}>
+            <BarcodeScannerInventory 
+              onInventoryUpdate={() => {
+                // Refresh inventory data
+                window.location.reload();
+              }} 
+            />
+          </HelpTooltip>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex-1 sm:flex-none">
-                <Plus className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Add Product</span>
-                <span className="sm:hidden">Add</span>
-              </Button>
+              <HelpTooltip content="Add a new product to your inventory with multiple variants like size and color" showIcon={false}>
+                <Button className="flex-1 sm:flex-none">
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Add Product</span>
+                  <span className="sm:hidden">Add</span>
+                </Button>
+              </HelpTooltip>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -366,18 +376,19 @@ const Inventory = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Total Items</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3">
-            <div className="text-xl md:text-2xl font-bold">{totalItems}</div>
-            <p className="text-xs text-muted-foreground">
-              All categories
-            </p>
-          </CardContent>
-        </Card>
+      <HelpSection helpText="These cards show real-time statistics about your inventory, including total items, number of products, and stock alerts.">
+        <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium">Total Items</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="text-xl md:text-2xl font-bold">{totalItems}</div>
+              <p className="text-xs text-muted-foreground">
+                All categories
+              </p>
+            </CardContent>
+          </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs md:text-sm font-medium">Products</CardTitle>
@@ -411,16 +422,18 @@ const Inventory = () => {
             </p>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </HelpSection>
 
       {/* Filters and Search */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Inventory Items</CardTitle>
-          <CardDescription>
-            Search and filter your inventory items
-          </CardDescription>
-        </CardHeader>
+      <HelpSection helpText="Use the search bar to quickly find items by name, SKU, or category. Apply filters to narrow down results by category, stock status, price range, or stock levels.">
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventory Items</CardTitle>
+            <CardDescription>
+              Search and filter your inventory items
+            </CardDescription>
+          </CardHeader>
         <CardContent className="p-3 md:p-6">
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
@@ -582,7 +595,8 @@ const Inventory = () => {
           
           <ProductVariantTable data={filteredProducts} onRefresh={handleRefresh} />
         </CardContent>
-      </Card>
+        </Card>
+      </HelpSection>
       
       {/* Test Data Helper - Only show in development */}
       <TestDataHelper />
