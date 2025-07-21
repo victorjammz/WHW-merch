@@ -890,6 +890,15 @@ const Orders = () => {
                               {item.name || 'Product Name Not Available'}
                             </h4>
                             <div className="flex flex-wrap gap-2 mt-2">
+                              {/* Inventory Source Badge */}
+                              {item.inventory_type && (
+                                <Badge 
+                                  variant={item.inventory_type === 'main' ? 'default' : 'secondary'} 
+                                  className="text-xs"
+                                >
+                                  {item.inventory_type === 'main' ? 'Main Inventory' : `Event: ${item.event_name || 'Unknown Event'}`}
+                                </Badge>
+                              )}
                               {item.size && (
                                 <Badge variant="outline" className="text-xs">
                                   Size: {item.size}
