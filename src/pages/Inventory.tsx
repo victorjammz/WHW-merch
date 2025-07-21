@@ -353,13 +353,11 @@ const Inventory = () => {
           </HelpTooltip>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <HelpTooltip content="Add a new product to your inventory with multiple variants like size and color" showIcon={false}>
-                <Button className="flex-1 sm:flex-none">
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Add Product</span>
-                  <span className="sm:hidden">Add</span>
-                </Button>
-              </HelpTooltip>
+              <Button className="flex-1 sm:flex-none">
+                <Plus className="mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Add Product</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
