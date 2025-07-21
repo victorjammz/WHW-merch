@@ -896,7 +896,7 @@ const Orders = () => {
                                   variant={item.inventory_type === 'main' ? 'default' : 'secondary'} 
                                   className="text-xs"
                                 >
-                                  {item.inventory_type === 'main' ? 'Main Inventory' : `Event: ${item.event_name || 'Unknown Event'}`}
+                                  {item.inventory_type === 'main' ? 'Main Inventory' : `Event: ${selectedOrder.event_name || 'Event Inventory'}`}
                                 </Badge>
                               )}
                               {item.size && (
