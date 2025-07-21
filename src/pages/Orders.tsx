@@ -822,7 +822,19 @@ const Orders = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">Event Name</Label>
-                  <p className="text-sm text-muted-foreground">{selectedOrder.event_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(() => {
+                      // Check if order uses multiple inventory sources
+                      const hasMainInventory = selectedOrder.items?.some((item: any) => item.inventory_type === 'main');
+                      const hasEventInventory = selectedOrder.items?.some((item: any) => item.inventory_type === 'event');
+                      
+                      if (hasMainInventory && hasEventInventory) {
+                        return "Multi Order";
+                      }
+                      
+                      return selectedOrder.event_name;
+                    })()}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Client Name</Label>
@@ -912,15 +924,15 @@ const Orders = () => {
                               {item.name || 'Product Name Not Available'}
                             </h4>
                             <div className="flex flex-wrap gap-2 mt-2">
-                              {/* Inventory Source Badge */}
-                              {item.inventory_type && (
-                                <Badge 
-                                  variant={item.inventory_type === 'main' ? 'default' : 'secondary'} 
-                                  className="text-xs"
-                                >
-                                  {item.inventory_type === 'main' ? 'Main Inventory' : `Event: ${selectedOrder.event_name || 'Event Inventory'}`}
-                                </Badge>
-                              )}
+                               {/* Inventory Source Badge */}
+                               {item.inventory_type && (
+                                 <Badge 
+                                   variant={item.inventory_type === 'main' ? 'default' : 'secondary'} 
+                                   className="text-xs"
+                                 >
+                                   {item.inventory_type === 'main' ? 'Main Inventory' : `Event: ${item.event_name || 'Unknown Event'}`}
+                                 </Badge>
+                               )}
                               {item.size && (
                                 <Badge variant="outline" className="text-xs">
                                   Size: {item.size}

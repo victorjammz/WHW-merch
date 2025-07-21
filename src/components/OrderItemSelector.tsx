@@ -17,6 +17,7 @@ interface OrderItem {
   id: string;
   inventory_type: "main" | "event";
   event_id?: string;
+  event_name?: string;
   product_id: string;
   variant_id: string;
   quantity: number;
@@ -346,10 +347,19 @@ function OrderItemRow({
           {item.inventory_type === "event" && (
             <div className="space-y-2">
               <Label>Event</Label>
-              <Select 
-                value={item.event_id || ""} 
-                onValueChange={(value) => onUpdate({ event_id: value, variant_id: "", product_id: "", price: 0 })}
-              >
+               <Select 
+                 value={item.event_id || ""} 
+                 onValueChange={(value) => {
+                   const selectedEvent = events.find(e => e.id === value);
+                   onUpdate({ 
+                     event_id: value, 
+                     event_name: selectedEvent?.name,
+                     variant_id: "", 
+                     product_id: "", 
+                     price: 0 
+                   });
+                 }}
+               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select event" />
                 </SelectTrigger>

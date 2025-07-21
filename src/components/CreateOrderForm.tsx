@@ -19,6 +19,7 @@ interface OrderItem {
   id: string;
   inventory_type: "main" | "event";
   event_id?: string;
+  event_name?: string;
   product_id: string;
   variant_id: string;
   quantity: number;
