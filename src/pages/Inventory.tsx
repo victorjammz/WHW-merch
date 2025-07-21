@@ -44,6 +44,8 @@ interface Product {
 interface FilterState {
   categories: string[];
   status: string[];
+  colors: string[];
+  sizes: string[];
   priceRange: { min: string; max: string };
   stockLevel: string;
 }
@@ -60,9 +62,13 @@ const Inventory = () => {
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [colors, setColors] = useState<string[]>([]);
+  const [sizes, setSizes] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     categories: [],
     status: [],
+    colors: [],
+    sizes: [],
     priceRange: { min: "", max: "" },
     stockLevel: ""
   });
@@ -123,6 +129,12 @@ const Inventory = () => {
       // Extract unique categories from products
       const uniqueCategories = [...new Set(productsData.map(product => product.category))];
       setCategories(uniqueCategories);
+
+      // Extract unique colors and sizes from variants
+      const uniqueColors = [...new Set(variantsData.map(variant => variant.color).filter(Boolean))];
+      const uniqueSizes = [...new Set(variantsData.map(variant => variant.size).filter(Boolean))];
+      setColors(uniqueColors);
+      setSizes(uniqueSizes);
     };
 
     fetchProducts();
@@ -175,6 +187,22 @@ const Inventory = () => {
         return true;
       });
       if (!hasMatchingPrice) return false;
+    }
+
+    // Color filter - check if any variant matches the selected colors
+    if (filters.colors.length > 0) {
+      const hasMatchingColor = product.variants.some(variant => 
+        variant.color && filters.colors.includes(variant.color)
+      );
+      if (!hasMatchingColor) return false;
+    }
+
+    // Size filter - check if any variant matches the selected sizes
+    if (filters.sizes.length > 0) {
+      const hasMatchingSize = product.variants.some(variant => 
+        variant.size && filters.sizes.includes(variant.size)
+      );
+      if (!hasMatchingSize) return false;
     }
 
     // Stock level filter - check if any variant matches the stock level
@@ -251,12 +279,20 @@ const Inventory = () => {
     // Extract unique categories
     const uniqueCategories = [...new Set(productsData.map(product => product.category))];
     setCategories(uniqueCategories);
+
+    // Extract unique colors and sizes from variants
+    const uniqueColors = [...new Set(variantsData.map(variant => variant.color).filter(Boolean))];
+    const uniqueSizes = [...new Set(variantsData.map(variant => variant.size).filter(Boolean))];
+    setColors(uniqueColors);
+    setSizes(uniqueSizes);
   };
 
   const clearFilters = () => {
     setFilters({
       categories: [],
       status: [],
+      colors: [],
+      sizes: [],
       priceRange: { min: "", max: "" },
       stockLevel: ""
     });
@@ -265,6 +301,8 @@ const Inventory = () => {
   const hasActiveFilters = () => {
     return filters.categories.length > 0 || 
            filters.status.length > 0 || 
+           filters.colors.length > 0 || 
+           filters.sizes.length > 0 || 
            filters.priceRange.min || 
            filters.priceRange.max || 
            filters.stockLevel;
@@ -529,6 +567,68 @@ const Inventory = () => {
                             />
                             <Label htmlFor={`status-${status.value}`} className="text-sm">
                               {status.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Color Filter */}
+                    <div className="space-y-2">
+                      <Label>Colors</Label>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {colors.map((color) => (
+                          <div key={color} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`color-${color}`}
+                              checked={filters.colors.includes(color)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilters(prev => ({
+                                    ...prev,
+                                    colors: [...prev.colors, color]
+                                  }));
+                                } else {
+                                  setFilters(prev => ({
+                                    ...prev,
+                                    colors: prev.colors.filter(c => c !== color)
+                                  }));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`color-${color}`} className="text-sm">
+                              {color}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Size Filter */}
+                    <div className="space-y-2">
+                      <Label>Sizes</Label>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {sizes.map((size) => (
+                          <div key={size} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`size-${size}`}
+                              checked={filters.sizes.includes(size)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFilters(prev => ({
+                                    ...prev,
+                                    sizes: [...prev.sizes, size]
+                                  }));
+                                } else {
+                                  setFilters(prev => ({
+                                    ...prev,
+                                    sizes: prev.sizes.filter(s => s !== size)
+                                  }));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`size-${size}`} className="text-sm">
+                              {size}
                             </Label>
                           </div>
                         ))}
