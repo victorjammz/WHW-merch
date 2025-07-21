@@ -23,6 +23,28 @@ import { formatDateWithUserSettings } from "@/utils/dateFormatting";
 import { CreateOrderForm } from "@/components/CreateOrderForm";
 import { EditOrderForm } from "@/components/EditOrderForm";
 
+// Helper functions for color coding
+const getColorValue = (colorName: string): string => {
+  const colorMap: { [key: string]: string } = {
+    'Black': '#000000',
+    'White': '#FFFFFF', 
+    'Grey': '#808080',
+    'Gray': '#808080',
+    'Navy': '#000080',
+    'Brown': '#8B4513',
+    'Beige': '#F5F5DC',
+    'Red': '#FF0000',
+    'Blue': '#0000FF',
+    'Green': '#008000'
+  };
+  return colorMap[colorName] || '#E5E7EB'; // Default to light gray
+};
+
+const getTextColor = (colorName: string): string => {
+  const lightColors = ['White', 'Beige', 'Grey', 'Gray'];
+  return lightColors.includes(colorName) ? '#000000' : '#FFFFFF';
+};
+
 const Orders = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [deletedOrders, setDeletedOrders] = useState<any[]>([]);
@@ -905,18 +927,21 @@ const Orders = () => {
                                 </Badge>
                               )}
                               {item.color && (
-                                <Badge variant="outline" className="text-xs">
-                                  Color: {item.color}
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs"
+                                  style={{
+                                    backgroundColor: getColorValue(item.color),
+                                    color: getTextColor(item.color),
+                                    borderColor: getColorValue(item.color)
+                                  }}
+                                >
+                                  {item.color}
                                 </Badge>
                               )}
                               {item.sku && (
                                 <Badge variant="secondary" className="text-xs font-mono">
                                   SKU: {item.sku}
-                                </Badge>
-                              )}
-                              {item.variant_id && (
-                                <Badge variant="secondary" className="text-xs font-mono">
-                                  Variant ID: {item.variant_id}
                                 </Badge>
                               )}
                              </div>
