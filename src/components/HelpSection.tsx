@@ -27,7 +27,7 @@ export const HelpSection: React.FC<HelpSectionProps> = ({
         <TooltipTrigger asChild>
           <div 
             className={`
-              ${highlightOnHover ? 'hover:bg-muted/30 hover:border-primary/20 transition-all duration-200 rounded-md p-1' : ''} 
+              ${highlightOnHover ? 'hover:bg-yellow-50 hover:border-yellow-200 transition-all duration-200 rounded-md p-1' : ''} 
               ${className}
             `}
           >
@@ -36,9 +36,10 @@ export const HelpSection: React.FC<HelpSectionProps> = ({
         </TooltipTrigger>
         <TooltipContent 
           side={side} 
-          className="max-w-sm text-left z-50"
+          className="max-w-sm text-left z-50 bg-yellow-50 border-yellow-200 text-yellow-900 text-xs px-2 py-1"
+          style={{ maxWidth: "200px" }}
         >
-          <p>{helpText}</p>
+          <p className="text-xs leading-tight">{helpText}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

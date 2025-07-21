@@ -33,17 +33,17 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
             {showIcon && (
               <HelpCircle 
                 size={iconSize} 
-                className="text-muted-foreground hover:text-foreground transition-colors" 
+                className="text-yellow-600 hover:text-yellow-700 transition-colors" 
               />
             )}
           </div>
         </TooltipTrigger>
         <TooltipContent 
           side={side} 
-          className="max-w-xs text-left"
-          style={{ maxWidth }}
+          className="max-w-xs text-left bg-yellow-50 border-yellow-200 text-yellow-900 text-xs px-2 py-1"
+          style={{ maxWidth: "250px" }}
         >
-          <p>{content}</p>
+          <p className="text-xs leading-tight">{content}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
