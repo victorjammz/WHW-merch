@@ -910,14 +910,8 @@ const Orders = () => {
                                   Variant ID: {item.variant_id}
                                 </Badge>
                               )}
-                            </div>
-                            {/* Debug information - temporarily show all item properties */}
-                            <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
-                              <p className="font-mono text-muted-foreground">
-                                Debug: {JSON.stringify(item, null, 2)}
-                              </p>
-                            </div>
-                          </div>
+                             </div>
+                           </div>
                           <div className="text-right ml-4">
                             <p className="text-sm font-medium">Qty: {item.quantity || 'N/A'}</p>
                             <p className="text-xs text-muted-foreground">@ {formatPrice(item.price || 0)}</p>
@@ -937,12 +931,6 @@ const Orders = () => {
                 <div>
                   <Label className="text-sm font-medium">Product Variants</Label>
                   <p className="text-sm text-muted-foreground mt-1">No items found in this order</p>
-                  {/* Debug: Show raw items data */}
-                  <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
-                    <p className="font-mono text-muted-foreground">
-                      Debug - Raw items: {JSON.stringify(selectedOrder.items, null, 2)}
-                    </p>
-                  </div>
                 </div>
               )}
               
