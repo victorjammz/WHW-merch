@@ -412,8 +412,8 @@ function OrderItemRow({
                     />
                   </div>
                 </div>
-                <ScrollArea className="h-60">
-                  <div className="p-2">
+                <ScrollArea className="h-60 pointer-events-auto">
+                  <div className="p-2 pointer-events-auto">
                     {filteredInventory.length === 0 ? (
                       <div className="p-4 text-center text-muted-foreground">
                         No products found
