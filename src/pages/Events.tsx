@@ -27,7 +27,7 @@ interface Event {
 
 interface EventFormData {
   name: string;
-  code: string;
+  code?: string;
   address: string;
   phone: string;
   manager_name: string;
@@ -75,9 +75,11 @@ const Events = () => {
 
   const handleAdd = async () => {
     try {
+      // Don't include code in insert - let the trigger generate it
+      const { code, ...insertData } = formData;
       const { data, error } = await supabase
         .from('events')
-        .insert([formData])
+        .insert([insertData as any])
         .select();
 
       if (error) throw error;
@@ -229,15 +231,17 @@ const Events = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="code">Event Code *</Label>
-                  <Input
-                    id="code"
-                    value={formData.code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                    placeholder="e.g., SF2024"
-                  />
-                </div>
+                {editingEvent && (
+                  <div className="space-y-2">
+                    <Label htmlFor="code">Event Code</Label>
+                    <Input
+                      id="code"
+                      value={formData.code}
+                      onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                      placeholder="e.g., EV-00001"
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">
