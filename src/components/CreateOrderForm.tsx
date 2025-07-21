@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
-import { EnhancedItemSelector } from "@/components/EnhancedItemSelector";
+import { OrderItemSelector } from "@/components/OrderItemSelector";
 
 interface CreateOrderFormProps {
   onSuccess?: () => void;
@@ -16,16 +16,17 @@ interface CreateOrderFormProps {
 
 interface OrderItem {
   id: string;
-  category: string;
+  inventory_type: "main" | "event";
+  event_id?: string;
   product_id: string;
   variant_id: string;
   quantity: number;
   price: number;
-  // Add actual product variant details for display
   name?: string;
   size?: string;
   color?: string;
   sku?: string;
+  available_quantity?: number;
 }
 
 
@@ -59,9 +60,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [country, setCountry] = useState("");
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    { id: "1", category: "", product_id: "", variant_id: "", quantity: 1, price: 0 }
-  ]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
   // Step 2 - Payment Details
   const [paymentStatus, setPaymentStatus] = useState("not paid");
@@ -216,6 +215,43 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     }
   };
 
+  const updateInventoryLevels = async () => {
+    try {
+      for (const item of orderItems) {
+        if (item.inventory_type === "main") {
+          // Update main inventory (product_variants table)
+          const { error } = await supabase
+            .from('product_variants')
+            .update({
+              quantity: item.available_quantity! - item.quantity
+            })
+            .eq('id', item.variant_id);
+
+          if (error) throw error;
+        } else if (item.inventory_type === "event" && item.event_id) {
+          // Update event inventory
+          const { error } = await supabase
+            .from('event_inventory')
+            .update({
+              quantity: item.available_quantity! - item.quantity
+            })
+            .eq('event_id', item.event_id)
+            .eq('product_variant_id', item.variant_id);
+
+          if (error) throw error;
+        }
+      }
+    } catch (error: any) {
+      console.error('Error updating inventory:', error);
+      // Don't throw - we don't want inventory update failure to prevent order creation
+      toast({
+        title: "Warning",
+        description: "Order created but inventory levels may not have updated correctly",
+        variant: "destructive"
+      });
+    }
+  };
+
 
   const handleNextStep = () => {
     // Validate required fields for step 1
@@ -290,6 +326,9 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       // Sync customer information to customers table
       await syncCustomerFromOrder();
 
+      // Update inventory levels
+      await updateInventoryLevels();
+
       toast({
         title: "Success",
         description: "Order created successfully"
@@ -305,7 +344,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       setCountry("");
       setStatus("pending");
       setNotes("");
-      setOrderItems([{ id: "1", category: "", product_id: "", variant_id: "", quantity: 1, price: 0 }]);
+      setOrderItems([]);
       setPaymentStatus("not paid");
       setPaymentMethod("");
       setPaymentReference("");
@@ -449,13 +488,11 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
             )}
           </div>
 
-          {/* Order Items - TODO: Fix this component */}
-          <div className="space-y-2">
-            <Label>Order Items</Label>
-            <div className="text-sm text-muted-foreground">
-              Item selection functionality needs to be restored
-            </div>
-          </div>
+          {/* Order Items */}
+          <OrderItemSelector 
+            orderItems={orderItems}
+            onOrderItemsChange={setOrderItems}
+          />
 
           {/* Notes */}
           <div className="space-y-2">
