@@ -6,6 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useHelp } from "@/contexts/HelpContext";
 
 interface HelpTooltipProps {
   content: string;
@@ -24,6 +25,13 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
   iconSize = 16,
   maxWidth = "300px"
 }) => {
+  const { isHelpEnabled } = useHelp();
+
+  // If help is disabled, just return the children without any tooltip
+  if (!isHelpEnabled) {
+    return <>{children}</>;
+  }
+
   return (
     <TooltipProvider>
       <Tooltip>

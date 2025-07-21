@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { HelpSection } from "@/components/HelpSection";
 import { HelpButton } from "@/components/HelpButton";
+import { HelpToggle } from "@/components/HelpToggle";
 
 interface ProductVariant {
   id: string;
@@ -331,6 +332,7 @@ const Inventory = () => {
   return (
     <div className="space-y-4 md:space-y-6">
       <HelpButton />
+      <HelpToggle />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="min-w-0 flex-1">
           <HelpTooltip content="This page allows you to manage all your product inventory, track stock levels, and organize items by categories.">

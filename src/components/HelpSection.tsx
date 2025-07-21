@@ -5,6 +5,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useHelp } from "@/contexts/HelpContext";
 
 interface HelpSectionProps {
   helpText: string;
@@ -21,6 +22,13 @@ export const HelpSection: React.FC<HelpSectionProps> = ({
   className = "",
   highlightOnHover = true
 }) => {
+  const { isHelpEnabled } = useHelp();
+
+  // If help is disabled, just return the children without any tooltip or hover effects
+  if (!isHelpEnabled) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <TooltipProvider>
       <Tooltip>
