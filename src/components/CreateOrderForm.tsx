@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PostcodeAutocomplete } from "@/components/AddressAutocomplete";
 import { OrderItemSelector } from "@/components/OrderItemSelector";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface CreateOrderFormProps {
   onSuccess?: () => void;
