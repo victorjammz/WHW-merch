@@ -552,12 +552,12 @@ const Orders = () => {
                       <TableCell>{new Date(order.event_date).toLocaleDateString()}</TableCell>
                       <TableCell>{Array.isArray(order.items) ? order.items.length : 0} items</TableCell>
                       <TableCell>{formatPrice(order.total_amount)}</TableCell>
-                        <TableCell className="py-4">
+                        <TableCell className="py-4 min-w-[140px]">
                           <Select 
                             value={order.status} 
                             onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
                           >
-                            <SelectTrigger className="w-36 h-8 p-1 border-none bg-transparent hover:bg-transparent">
+                            <SelectTrigger className="w-full h-8 p-1 border-none bg-transparent hover:bg-transparent">
                               <SelectValue>
                                 <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1 w-full h-6 px-2 text-xs">
                                   {getStatusIcon(order.status)}
