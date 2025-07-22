@@ -16,7 +16,7 @@ const navigationItems: NavigationItem[] = [{
   url: "/",
   icon: BarChart3
 }, {
-  title: "Inventory",
+  title: "Main Inventory",
   url: "/inventory",
   icon: Package
 }, {

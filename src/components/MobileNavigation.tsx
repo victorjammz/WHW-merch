@@ -28,7 +28,7 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   { title: "Dashboard", url: "/", icon: BarChart3 },
   { 
-    title: "Inventory", 
+    title: "Main Inventory", 
     url: "/inventory", 
     icon: Package
   },
