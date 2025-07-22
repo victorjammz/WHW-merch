@@ -10,6 +10,7 @@ import {
   CircleUserRound,
   Shield,
   Calendar,
+  MapPin,
   X
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -31,9 +32,10 @@ const navigationItems: NavigationItem[] = [
     url: "/inventory", 
     icon: Package
   },
-  { title: "Customers", url: "/customers", icon: Users },
+  { title: "Events", url: "/events", icon: Calendar },
+  { title: "Event Inventory", url: "/event-inventory", icon: MapPin },
   { title: "Orders", url: "/orders", icon: ShoppingCart },
-  { title: "Event Orders", url: "/event-orders", icon: Calendar },
+  { title: "Customers", url: "/customers", icon: Users },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
   { title: "Barcodes", url: "/barcodes", icon: QrCode },
   { title: "Reports", url: "/reports", icon: FileText },
