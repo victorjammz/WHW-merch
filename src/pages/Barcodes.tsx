@@ -186,10 +186,10 @@ const Barcodes = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Barcode Management</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Barcode Management</h1>
           <p className="text-muted-foreground">
             Generate and manage product barcodes
           </p>
@@ -217,7 +217,7 @@ const Barcodes = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Barcodes</CardTitle>
@@ -280,7 +280,7 @@ const Barcodes = () => {
                 View and manage all generated barcodes
               </CardDescription>
             </div>
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search barcodes..."
@@ -292,7 +292,8 @@ const Barcodes = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow>
                 <TableHead>SKU</TableHead>
@@ -343,11 +344,12 @@ const Barcodes = () => {
                     <div className="text-sm">{formatDateWithUserSettings(barcode.created_at, settings?.date_format)}</div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handlePrint(barcode)}
+                        className="w-full sm:w-auto"
                       >
                         <Printer className="h-3 w-3 mr-1" />
                         Print
@@ -356,6 +358,7 @@ const Barcodes = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDownload(barcode)}
+                        className="w-full sm:w-auto"
                       >
                         <Download className="h-3 w-3 mr-1" />
                         Download
@@ -366,6 +369,7 @@ const Barcodes = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
 
           {filteredBarcodes.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">

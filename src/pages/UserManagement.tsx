@@ -284,10 +284,10 @@ export default function UserManagement() {
   });
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">
             Manage users and their access levels
           </p>
@@ -305,8 +305,8 @@ export default function UserManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between mb-4">
-            <div className="relative w-full max-w-sm">
+          <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
+            <div className="relative w-full sm:max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search users..."
@@ -354,8 +354,8 @@ export default function UserManagement() {
             </Dialog>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
+          <div className="border rounded-lg overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>User</TableHead>
@@ -436,24 +436,26 @@ export default function UserManagement() {
                         {formatDateWithUserSettings(user.created_at, settings?.date_format)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                           {user.status === 'pending' && isAdmin && (
                             <>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleApproveUser(user)}
-                                className="text-green-600 hover:text-green-700"
+                                className="text-green-600 hover:text-green-700 w-full sm:w-auto"
                               >
-                                <UserCheck className="h-4 w-4" />
+                                <UserCheck className="h-4 w-4 mr-1 sm:mr-0" />
+                                <span className="sm:hidden">Approve</span>
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleRejectUser(user)}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-600 hover:text-red-700 w-full sm:w-auto"
                               >
-                                <UserX className="h-4 w-4" />
+                                <UserX className="h-4 w-4 mr-1 sm:mr-0" />
+                                <span className="sm:hidden">Reject</span>
                               </Button>
                             </>
                           )}
@@ -462,16 +464,20 @@ export default function UserManagement() {
                             size="sm"
                             onClick={() => handleEditUser(user)}
                             disabled={!isAdmin}
+                            className="w-full sm:w-auto"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-4 w-4 mr-1 sm:mr-0" />
+                            <span className="sm:hidden">Edit</span>
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteClick(user)}
                             disabled={!isAdmin || user.id === currentUser?.id}
+                            className="w-full sm:w-auto"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mr-1 sm:mr-0" />
+                            <span className="sm:hidden">Delete</span>
                           </Button>
                         </div>
                       </TableCell>

@@ -176,10 +176,10 @@ const Customers = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Customer Management</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Customer Management</h1>
           <p className="text-muted-foreground">
             Manage your customer relationships and data
           </p>
@@ -191,7 +191,7 @@ const Customers = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
@@ -248,8 +248,8 @@ const Customers = () => {
                 View and manage your customer database
               </CardDescription>
             </div>
-            <div className="flex gap-4 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search customers..."
@@ -259,7 +259,7 @@ const Customers = () => {
                 />
               </div>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -272,7 +272,8 @@ const Customers = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead 
@@ -387,20 +388,23 @@ const Customers = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleViewCustomer(customer.id)}>
+                    <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleViewCustomer(customer.id)} className="w-full sm:w-auto">
                         <Eye className="h-3 w-3 mr-1" />
-                        View
+                        <span className="sm:hidden">View</span>
+                        <span className="hidden sm:inline">View</span>
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer.id, customer.name)}>
+                      <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customer.id, customer.name)} className="w-full sm:w-auto">
                         <Edit className="h-3 w-3 mr-1" />
-                        Edit
+                        <span className="sm:hidden">Edit</span>
+                        <span className="hidden sm:inline">Edit</span>
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive w-full sm:w-auto">
                             <Trash2 className="h-3 w-3 mr-1" />
-                            Delete
+                            <span className="sm:hidden">Delete</span>
+                            <span className="hidden sm:inline">Delete</span>
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -426,7 +430,8 @@ const Customers = () => {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -345,7 +345,7 @@ const Orders = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-4 md:py-6 space-y-4 md:space-y-6 px-4 md:px-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
         <p className="text-muted-foreground">
@@ -449,8 +449,8 @@ const Orders = () => {
               </Dialog>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-4 flex-wrap">
-                <div className="relative flex-1 min-w-[200px]">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="relative flex-1 min-w-0">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search orders..."
@@ -460,7 +460,7 @@ const Orders = () => {
                   />
                 </div>
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -472,7 +472,7 @@ const Orders = () => {
                   </SelectContent>
                 </Select>
                 <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[160px]">
                     <SelectValue placeholder="Filter by date" />
                   </SelectTrigger>
                   <SelectContent>

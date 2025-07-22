@@ -301,7 +301,7 @@ const EventInventory = () => {
   const lowStockItems = filteredInventory.filter(item => item.quantity < 10).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Event Inventory</h1>
@@ -317,7 +317,7 @@ const EventInventory = () => {
               Transfer Stock
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-w-[95vw]">
             <DialogHeader>
               <DialogTitle>Transfer Stock to Event</DialogTitle>
               <DialogDescription>
@@ -415,7 +415,7 @@ const EventInventory = () => {
       {selectedEvent && (
         <>
           {/* Event Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Items</CardTitle>

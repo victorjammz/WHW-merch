@@ -240,17 +240,17 @@ export default function RoleManagement() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Role Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Role Management</h1>
             <p className="text-muted-foreground">
               Assign access levels to users in the system
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -293,8 +293,8 @@ export default function RoleManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative w-full max-w-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="relative w-full sm:max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search users..."
@@ -304,14 +304,14 @@ export default function RoleManagement() {
               />
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
               {selectedCount > 0 && (
                 <>
                    <span className="text-sm text-muted-foreground">
                      {selectedCount} user(s) selected
                    </span>
                    <Select value={selectedRole} onValueChange={(value: 'admin' | 'manager' | 'employee' | 'viewer') => setSelectedRole(value)}>
-                     <SelectTrigger className="w-[180px]">
+                     <SelectTrigger className="w-full sm:w-[180px]">
                        <SelectValue placeholder="Select role" />
                      </SelectTrigger>
                      <SelectContent>
@@ -324,6 +324,7 @@ export default function RoleManagement() {
                    <Button 
                      onClick={updateSelectedUsersRole} 
                      disabled={isUpdating || !selectedRole}
+                     className="w-full sm:w-auto"
                    >
                     {isUpdating ? (
                       <>
@@ -342,8 +343,8 @@ export default function RoleManagement() {
             </div>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
+          <div className="border rounded-lg overflow-x-auto">
+            <Table className="min-w-[600px]">
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="w-[50px]">
@@ -421,7 +422,7 @@ export default function RoleManagement() {
             </Table>
           </div>
           
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 border rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 {getRoleBadge('admin')}

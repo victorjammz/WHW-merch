@@ -211,7 +211,7 @@ const Events = () => {
               Add Event
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-w-[95vw]">
             <DialogHeader>
               <DialogTitle>{editingEvent ? "Edit Event" : "Add New Event"}</DialogTitle>
               <DialogDescription>
@@ -326,7 +326,7 @@ const Events = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Events</CardTitle>
@@ -392,7 +392,8 @@ const Events = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Event</TableHead>
@@ -448,6 +449,7 @@ const Events = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
