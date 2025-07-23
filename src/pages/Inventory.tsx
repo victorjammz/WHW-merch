@@ -381,14 +381,6 @@ const Inventory = () => {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <HelpTooltip content="Scan barcodes to quickly add or update inventory items" showIcon={false}>
-            <BarcodeScannerInventory 
-              onInventoryUpdate={() => {
-                // Refresh inventory data
-                window.location.reload();
-              }} 
-            />
-          </HelpTooltip>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex-1 sm:flex-none">
