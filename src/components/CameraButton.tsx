@@ -243,7 +243,10 @@ export const CameraButton = ({ onInventoryUpdate }: CameraButtonProps) => {
 
             {!isScanning && !scannedItem && (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">Click "Scan Barcode" to start scanning</p>
+                <p className="text-muted-foreground mb-4">Ready to scan a barcode</p>
+                <Button onClick={handleStartScan} className="w-full">
+                  Start Scanning
+                </Button>
               </div>
             )}
           </div>
