@@ -12,6 +12,7 @@ import { ProductVariantTable } from "@/components/ProductVariantTable";
 import { AddInventoryForm } from "@/components/AddInventoryForm";
 import { AddProductForm } from "@/components/AddProductForm";
 import { BarcodeScannerInventory } from "@/components/BarcodeScannerInventory";
+import { CameraButton } from "@/components/CameraButton";
 import { TestDataHelper } from "@/components/TestDataHelper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -389,6 +390,7 @@ const Inventory = () => {
               }} 
             />
           </HelpTooltip>
+          <CameraButton />
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex-1 sm:flex-none">
