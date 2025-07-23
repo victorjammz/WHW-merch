@@ -390,7 +390,7 @@ const Inventory = () => {
               }} 
             />
           </HelpTooltip>
-          <CameraButton />
+          <CameraButton onInventoryUpdate={handleRefresh} />
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex-1 sm:flex-none">

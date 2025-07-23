@@ -3,90 +3,249 @@ import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Capacitor } from "@capacitor/core";
+import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { supabase } from "@/integrations/supabase/client";
 
-export const CameraButton = () => {
+interface InventoryItem {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  quantity: number;
+  price: number;
+  image_url?: string | null;
+}
+
+interface CameraButtonProps {
+  onInventoryUpdate?: () => void;
+}
+
+export const CameraButton = ({ onInventoryUpdate }: CameraButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [scannedItem, setScannedItem] = useState<InventoryItem | null>(null);
+  const [quantityToAdd, setQuantityToAdd] = useState(1);
+  const [operationType, setOperationType] = useState<'add' | 'subtract'>('add');
+  const [isUpdating, setIsUpdating] = useState(false);
+  
   const { toast } = useToast();
+  const { isScanning, startScan, stopScan, hasPermission, checkPermission } = useBarcodeScanner();
 
-  const openCamera = async () => {
+  const searchInventoryBySKU = async (scannedCode: string) => {
     try {
-      if (Capacitor.isNativePlatform()) {
-        // On mobile, we'll use a simple camera interface
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment' // Use back camera
-          } 
+      // Search in product_variants table by SKU or barcode
+      const { data: variantData, error: variantError } = await supabase
+        .from('product_variants')
+        .select(`
+          id,
+          sku,
+          quantity,
+          price,
+          image_url,
+          product:products(name, category)
+        `)
+        .or(`sku.eq.${scannedCode},barcode.eq.${scannedCode}`)
+        .single();
+
+      if (variantError || !variantData) {
+        toast({
+          title: "Item Not Found",
+          description: `No inventory item found with SKU/barcode: ${scannedCode}`,
+          variant: "destructive",
         });
-        setStream(stream);
-        setIsOpen(true);
-      } else {
-        // On desktop, open camera
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: true 
-        });
-        setStream(stream);
-        setIsOpen(true);
+        setScannedItem(null);
+        return;
       }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
+
+      const inventoryItem: InventoryItem = {
+        id: variantData.id,
+        sku: variantData.sku,
+        name: variantData.product?.name || 'Unknown Product',
+        category: variantData.product?.category || 'Unknown Category',
+        quantity: variantData.quantity,
+        price: variantData.price,
+        image_url: variantData.image_url
+      };
+
+      setScannedItem(inventoryItem);
       toast({
-        title: "Camera Error",
-        description: "Unable to access camera. Please check permissions.",
+        title: "Item Found!",
+        description: `Found: ${inventoryItem.name}`,
+      });
+    } catch (error) {
+      console.error('Error searching inventory:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to search inventory",
         variant: "destructive",
       });
     }
   };
 
-  const closeCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+  const handleStartScan = async () => {
+    if (!hasPermission) {
+      const permission = await checkPermission();
+      if (!permission) {
+        toast({
+          title: "Camera Permission Required",
+          description: "Please allow camera access to scan barcodes",
+          variant: "destructive",
+        });
+        return;
+      }
     }
-    setIsOpen(false);
+
+    setIsOpen(true);
+    setScannedItem(null);
+    
+    try {
+      const result = await startScan();
+      if (result && result.hasContent) {
+        await searchInventoryBySKU(result.content);
+      }
+    } catch (error) {
+      console.error('Scan error:', error);
+      toast({
+        title: "Scan Error",
+        description: "Failed to scan barcode",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDialogChange = (open: boolean) => {
-    if (!open) {
-      closeCamera();
+  const updateInventoryQuantity = async () => {
+    if (!scannedItem) return;
+
+    setIsUpdating(true);
+    try {
+      const newQuantity = operationType === 'add' 
+        ? scannedItem.quantity + quantityToAdd
+        : Math.max(0, scannedItem.quantity - quantityToAdd);
+
+      const { error } = await supabase
+        .from('product_variants')
+        .update({ quantity: newQuantity })
+        .eq('id', scannedItem.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Inventory Updated",
+        description: `${scannedItem.name} quantity updated to ${newQuantity}`,
+      });
+
+      setIsOpen(false);
+      setScannedItem(null);
+      setQuantityToAdd(1);
+      onInventoryUpdate?.();
+    } catch (error) {
+      console.error('Error updating inventory:', error);
+      toast({
+        title: "Update Error",
+        description: "Failed to update inventory",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
     }
+  };
+
+  const handleDialogClose = () => {
+    if (isScanning) {
+      stopScan();
+    }
+    setIsOpen(false);
+    setScannedItem(null);
+    setQuantityToAdd(1);
   };
 
   return (
     <>
-      <Button onClick={openCamera} variant="outline" size="sm">
+      <Button onClick={handleStartScan} variant="outline" size="sm" disabled={isScanning}>
         <Camera className="h-4 w-4 mr-2" />
-        <span className="hidden sm:inline">Camera</span>
+        <span className="hidden sm:inline">Scan Barcode</span>
+        <span className="sm:hidden">Scan</span>
       </Button>
 
-      <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+      <Dialog open={isOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="max-w-[95vw] md:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Camera</DialogTitle>
+            <DialogTitle>Barcode Scanner</DialogTitle>
           </DialogHeader>
+          
           <div className="space-y-4">
-            {stream && (
-              <div className="relative">
-                <video
-                  ref={(video) => {
-                    if (video && stream) {
-                      video.srcObject = stream;
-                      video.play();
-                    }
-                  }}
-                  className="w-full h-64 md:h-96 bg-black rounded-lg"
-                  autoPlay
-                  playsInline
-                  muted
-                />
+            {isScanning && (
+              <div className="text-center py-8">
+                <p className="text-lg mb-4">Point your camera at a barcode</p>
+                <div className="w-full h-64 bg-black rounded-lg flex items-center justify-center">
+                  <p className="text-white">Camera scanning...</p>
+                </div>
               </div>
             )}
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={closeCamera}>
-                Close Camera
-              </Button>
-            </div>
+
+            {scannedItem && (
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold text-lg">{scannedItem.name}</h3>
+                  <p className="text-sm text-muted-foreground">SKU: {scannedItem.sku}</p>
+                  <p className="text-sm text-muted-foreground">Category: {scannedItem.category}</p>
+                  <p className="text-sm">Current Stock: <span className="font-medium">{scannedItem.quantity}</span></p>
+                  <p className="text-sm">Price: <span className="font-medium">${scannedItem.price}</span></p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant={operationType === 'add' ? 'default' : 'outline'}
+                    onClick={() => setOperationType('add')}
+                    className="flex-1"
+                  >
+                    Add Stock
+                  </Button>
+                  <Button
+                    variant={operationType === 'subtract' ? 'default' : 'outline'}
+                    onClick={() => setOperationType('subtract')}
+                    className="flex-1"
+                  >
+                    Remove Stock
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setQuantityToAdd(Math.max(1, quantityToAdd - 1))}
+                    disabled={quantityToAdd <= 1}
+                  >
+                    -
+                  </Button>
+                  <span className="flex-1 text-center font-medium">{quantityToAdd}</span>
+                  <Button
+                    variant="outline"
+                    onClick={() => setQuantityToAdd(quantityToAdd + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleDialogClose} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={updateInventoryQuantity} 
+                    disabled={isUpdating}
+                    className="flex-1"
+                  >
+                    {isUpdating ? 'Updating...' : `${operationType === 'add' ? 'Add' : 'Remove'} ${quantityToAdd}`}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!isScanning && !scannedItem && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Click "Scan Barcode" to start scanning</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
